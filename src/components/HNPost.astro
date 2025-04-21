@@ -45,10 +45,6 @@ const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
       <a href={hnPostUrl} target="_blank" rel="noopener noreferrer" class="hn-link">
         <span class="hn-icon">Y</span> {post.num_comments} comments
       </a>
-      <div class="api-links">
-        <a href={algoliaItemUrl} target="_blank" rel="noopener noreferrer" class="api-link" title="View post in Algolia search">Algolia: Post</a> | 
-        <a href={algoliaSearchUrl} target="_blank" rel="noopener noreferrer" class="api-link" title="Search similar stories in Algolia">Algolia: Search</a>
-      </div>
     </div>
   </div>
   
@@ -70,12 +66,6 @@ const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
                   target="_blank" 
                   rel="noopener noreferrer">
                   <span class="hn-icon">Y</span> View on HN
-                </a>
-                <a href={`https://hn.algolia.com/?tags=comment&query=${comment.objectID}&type=all`}
-                  class="api-link small"
-                  target="_blank"
-                  rel="noopener noreferrer">
-                  Algolia
                 </a>
               </div>
             </div>
