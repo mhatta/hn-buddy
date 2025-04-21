@@ -91,23 +91,44 @@ export const GET: APIRoute = async ({ url, request }) => {
         const postsWithComments: PostWithComments[] = [];
         
         for (const post of hits) {
-          // Use Algolia API to fetch comments for this story
-          // Force exactly 10 comments to be loaded
-          const commentsURL = `https://hn.algolia.com/api/v1/search?tags=comment,story_${post.objectID}&hitsPerPage=10`;
+          // Get top comments using the official HN API
           let topComments: Comment[] = [];
           
           try {
-            const commentsResp = await fetch(commentsURL);
-            if (commentsResp.ok) {
-              const commentsJSON = await commentsResp.json();
+            // First fetch the full item to get the kids (comment IDs)
+            const itemURL = `https://hacker-news.firebaseio.com/v0/item/${post.objectID}.json`;
+            const itemResp = await fetch(itemURL);
+            
+            if (itemResp.ok) {
+              const itemData = await itemResp.json();
+              const commentIds = itemData.kids || [];
               
-              // Just use the comments as received from the API without sorting
-              topComments = (commentsJSON.hits || [])
-                .filter((comment: any) => comment && comment.author && comment.comment_text);
+              // Now fetch each of the top 10 comments (the kids are already ordered by rank)
+              const commentPromises = commentIds.slice(0, 10).map(async (commentId: string) => {
+                const commentURL = `https://hacker-news.firebaseio.com/v0/item/${commentId}.json`;
+                const commentResp = await fetch(commentURL);
+                if (commentResp.ok) {
+                  return await commentResp.json();
+                }
+                return null;
+              });
+              
+              const commentResults = await Promise.all(commentPromises);
+              
+              // Convert the HN API format to our Comment format
+              topComments = commentResults
+                .filter(c => c && c.text) // Filter out nulls or comments without text
+                .map(c => ({
+                  author: c.by,
+                  comment_text: c.text,
+                  created_at: new Date(c.time * 1000).toISOString(),
+                  objectID: c.id.toString(),
+                  points: c.score || 0,
+                  story_id: post.objectID
+                }));
             }
           } catch (error) {
-            console.error("Error fetching comments:", error);
-            // Ignore comment fetching errors
+            console.error("Error fetching comments from HN API:", error);
           }
           
           postsWithComments.push({
