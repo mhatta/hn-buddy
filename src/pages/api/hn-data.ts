@@ -44,8 +44,8 @@ export const GET: APIRoute = async ({ url, request }) => {
     // Parse query parameters
     const daysParam = parseInt(url.searchParams.get('days') ?? '1');
     const dayOffset = parseInt(url.searchParams.get('offset') ?? '0'); // Default to today (0)
-    const numPosts = parseInt(url.searchParams.get('posts') ?? '30'); // Default to 30 posts
-    const numComments = parseInt(url.searchParams.get('comments') ?? '20'); // Default to 20 comments
+    const numPosts = parseInt(url.searchParams.get('posts') ?? '10'); // Default to 10 posts
+    const numComments = parseInt(url.searchParams.get('comments') ?? '10'); // Default to 10 comments
     
     console.log(`Fetching data with offset ${dayOffset}, ${numPosts} posts and ${numComments} comments per post`);
     
@@ -67,7 +67,8 @@ export const GET: APIRoute = async ({ url, request }) => {
       const numericDayEnd = Math.floor(dayEnd.getTime() / 1000);
       
       // Use the basic search endpoint with story tag which better matches the actual HN front page
-      const algoliaURL = `https://hn.algolia.com/api/v1/search?tags=story&numericFilters=created_at_i>=${numericDayStart},created_at_i<${numericDayEnd}&hitsPerPage=${numPosts}`;
+      // Force exactly 10 posts to be loaded
+      const algoliaURL = `https://hn.algolia.com/api/v1/search?tags=story&numericFilters=created_at_i>=${numericDayStart},created_at_i<${numericDayEnd}&hitsPerPage=10`;
       
       try {
         console.log(`Fetching stories for day offset ${dayOffset + d} with URL: ${algoliaURL}`);
@@ -91,7 +92,8 @@ export const GET: APIRoute = async ({ url, request }) => {
         
         for (const post of hits) {
           // Use Algolia API to fetch comments for this story
-          const commentsURL = `https://hn.algolia.com/api/v1/search?tags=comment,story_${post.objectID}&hitsPerPage=${numComments}`;
+          // Force exactly 10 comments to be loaded
+          const commentsURL = `https://hn.algolia.com/api/v1/search?tags=comment,story_${post.objectID}&hitsPerPage=10`;
           let topComments: Comment[] = [];
           
           try {
@@ -99,21 +101,9 @@ export const GET: APIRoute = async ({ url, request }) => {
             if (commentsResp.ok) {
               const commentsJSON = await commentsResp.json();
               
-              // Filter valid comments and sort by length as a proxy for quality
+              // Just use the comments as received from the API without sorting
               topComments = (commentsJSON.hits || [])
-                .filter((comment: any) => comment && comment.author && comment.comment_text)
-                .sort((a: any, b: any) => {
-                  // Sort by comment length
-                  const lengthA = a.comment_text ? a.comment_text.length : 0;
-                  const lengthB = b.comment_text ? b.comment_text.length : 0;
-                  
-                  if (lengthB !== lengthA) {
-                    return lengthB - lengthA; // Longer comments first
-                  }
-                  
-                  // Then by recency
-                  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-                });
+                .filter((comment: any) => comment && comment.author && comment.comment_text);
             }
           } catch (error) {
             console.error("Error fetching comments:", error);
