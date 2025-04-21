@@ -1,0 +1,6 @@
+name = "hn-buddy"
+main = "./dist/_worker.js"
+compatibility_date = "2023-04-20"
+
+[site]
+bucket = "./dist" 

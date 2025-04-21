@@ -1,0 +1,16 @@
+{
+  "name": "hn-buddy",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.5.0",
+    "astro": "^5.7.4",
+    "date-fns": "^4.1.0"
+  }
+}

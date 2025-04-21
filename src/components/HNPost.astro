@@ -1,0 +1,258 @@
+---
+interface Comment {
+  author: string;
+  comment_text: string;
+  created_at: string;
+  objectID: string;
+  points: number;
+  story_id: string;
+}
+
+interface Post {
+  title: string;
+  url: string;
+  author: string;
+  points: number;
+  created_at: string;
+  objectID: string;
+  num_comments: number;
+}
+
+interface Props {
+  post: Post;
+  topComments: Comment[];
+}
+
+const { post, topComments } = Astro.props;
+
+// Format the post URL
+const postUrl = post.url || `https://news.ycombinator.com/item?id=${post.objectID}`;
+const hnPostUrl = `https://news.ycombinator.com/item?id=${post.objectID}`;
+const algoliaItemUrl = `https://hn.algolia.com/?tags=comment,story_${post.objectID}&type=all`;
+const algoliaSearchUrl = `https://hn.algolia.com/?tags=story&query=${encodeURIComponent(post.title)}&type=story&sort=byPopularity`;
+const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
+---
+
+<div class="hn-post">
+  <div class="post-header">
+    <h2 class="post-title">
+      <a href={postUrl} target="_blank" rel="noopener noreferrer">{post.title}</a>
+      <span class="post-domain">({hostname})</span>
+    </h2>
+    <div class="post-meta">
+      <span class="points">{post.points} points</span> by 
+      <a href={`https://news.ycombinator.com/user?id=${post.author}`} target="_blank" rel="noopener noreferrer" class="author-link">{post.author}</a> | 
+      <a href={hnPostUrl} target="_blank" rel="noopener noreferrer" class="hn-link">
+        <span class="hn-icon">Y</span> {post.num_comments} comments
+      </a>
+      <div class="api-links">
+        <a href={algoliaItemUrl} target="_blank" rel="noopener noreferrer" class="api-link" title="View post in Algolia search">Algolia: Post</a> | 
+        <a href={algoliaSearchUrl} target="_blank" rel="noopener noreferrer" class="api-link" title="Search similar stories in Algolia">Algolia: Search</a>
+      </div>
+    </div>
+  </div>
+  
+  {topComments.length > 0 && (
+    <div class="post-comments">
+      <h3>Top Comments <span class="comment-count">({topComments.length})</span></h3>
+      <ul class="comments-list">
+        {topComments.map(comment => (
+          <li class="comment">
+            <div class="comment-meta">
+              <span class="points">{comment.points} points</span> by 
+              <a href={`https://news.ycombinator.com/user?id=${comment.author}`} target="_blank" rel="noopener noreferrer" class="author-link">{comment.author}</a>
+              <div class="comment-links">
+                <a href={`https://news.ycombinator.com/item?id=${comment.objectID}`} 
+                  class="hn-link small" 
+                  target="_blank" 
+                  rel="noopener noreferrer">
+                  <span class="hn-icon">Y</span> View on HN
+                </a>
+                <a href={`https://hn.algolia.com/?tags=comment&query=${comment.objectID}&type=all`}
+                  class="api-link small"
+                  target="_blank"
+                  rel="noopener noreferrer">
+                  Algolia
+                </a>
+              </div>
+            </div>
+            <div class="comment-text" set:html={comment.comment_text} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+</div>
+
+<style>
+  .hn-post {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  .post-header {
+    margin-bottom: 1rem;
+  }
+
+  .post-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+  }
+
+  .post-title a {
+    color: #000;
+    text-decoration: none;
+  }
+
+  .post-title a:hover {
+    text-decoration: underline;
+  }
+
+  .post-domain {
+    font-size: 0.875rem;
+    color: #666;
+    margin-left: 0.5rem;
+  }
+
+  .post-meta {
+    font-size: 0.875rem;
+    color: #666;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+  }
+
+  .api-links {
+    margin-left: auto;
+    font-size: 0.75rem;
+  }
+
+  .api-link {
+    color: #9c9c9c;
+    text-decoration: none;
+  }
+
+  .api-link:hover {
+    text-decoration: underline;
+    color: #666;
+  }
+
+  .api-link.small {
+    font-size: 0.7rem;
+  }
+
+  .points {
+    color: #f60;
+    font-weight: 600;
+  }
+
+  .author-link {
+    color: #666;
+    text-decoration: none;
+  }
+
+  .author-link:hover {
+    text-decoration: underline;
+  }
+
+  .hn-link {
+    color: #666;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .hn-link:hover {
+    text-decoration: underline;
+  }
+
+  .hn-link.small {
+    font-size: 0.7rem;
+  }
+
+  .hn-icon {
+    display: inline-block;
+    background-color: #f60;
+    color: white;
+    width: 1em;
+    height: 1em;
+    line-height: 1em;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.875em;
+    margin-right: 0.3em;
+    border-radius: 2px;
+  }
+
+  .post-comments {
+    margin-top: 1rem;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+  }
+
+  .comment-count {
+    font-size: 0.875rem;
+    color: #666;
+    font-weight: normal;
+  }
+
+  .comments-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .comment {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 0.5rem;
+  }
+
+  .comment-meta {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+  }
+
+  .comment-links {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .comment-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+  }
+
+  .comment-text :global(p) {
+    margin: 0.5rem 0;
+  }
+
+  .comment-text :global(pre) {
+    overflow-x: auto;
+    background-color: #f5f5f5;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+
+  .comment-text :global(a) {
+    color: #0366d6;
+    text-decoration: none;
+  }
+
+  .comment-text :global(a:hover) {
+    text-decoration: underline;
+  }
+</style> 
