@@ -34,7 +34,7 @@ interface DayData {
 }
 
 // Function to fetch directly from HN Algolia API
-async function fetchHNDataDirectly(dayOffset = 0, postsPerDay = 10, commentsPerPost = 20) {
+async function fetchHNDataDirectly(dayOffset = 0, postsPerDay = 30, commentsPerPost = 20) {
   const results = [];
   const now = new Date();
   
@@ -53,9 +53,9 @@ async function fetchHNDataDirectly(dayOffset = 0, postsPerDay = 10, commentsPerP
   const numericDayStart = Math.floor(dayStart.getTime() / 1000);
   const numericDayEnd = Math.floor(dayEnd.getTime() / 1000);
   
-  // Fetch front_page stories for that day via Algolia
+  // Match the API endpoint that works correctly
   try {
-    const algoliaURL = `https://hn.algolia.com/api/v1/search_by_date?tags=front_page&numericFilters=created_at_i>=${numericDayStart},created_at_i<${numericDayEnd}&hitsPerPage=50`;
+    const algoliaURL = `https://hn.algolia.com/api/v1/search?tags=story&numericFilters=created_at_i>=${numericDayStart},created_at_i<${numericDayEnd}&hitsPerPage=${postsPerDay}`;
     const algoliaResp = await fetch(algoliaURL);
     
     if (!algoliaResp.ok) {
@@ -69,14 +69,10 @@ async function fetchHNDataDirectly(dayOffset = 0, postsPerDay = 10, commentsPerP
     const algoliaJSON = await algoliaResp.json();
     const hits = algoliaJSON.hits || [];
     
-    // Sort by points, get top N
-    const topStories = hits
-      .sort((a: any, b: any) => (b.points ?? 0) - (a.points ?? 0))
-      .slice(0, postsPerDay);
-    
+    // No need for extra sorting, API returns results sorted by popularity
     const postsWithComments = [];
     
-    for (const post of topStories) {
+    for (const post of hits) {
       // Use Algolia API to fetch comments for this story
       let topComments = [];
       try {
@@ -85,8 +81,22 @@ async function fetchHNDataDirectly(dayOffset = 0, postsPerDay = 10, commentsPerP
         
         if (commentsResp.ok) {
           const commentsJSON = await commentsResp.json();
+          
+          // Filter valid comments and sort by length
           topComments = (commentsJSON.hits || [])
-            .sort((a: any, b: any) => (b.points ?? 0) - (a.points ?? 0));
+            .filter((comment: any) => comment && comment.author && comment.comment_text)
+            .sort((a: any, b: any) => {
+              // Sort by comment length
+              const lengthA = a.comment_text ? a.comment_text.length : 0;
+              const lengthB = b.comment_text ? b.comment_text.length : 0;
+              
+              if (lengthB !== lengthA) {
+                return lengthB - lengthA; // Longer comments first
+              }
+              
+              // Then by recency
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            });
         }
       } catch (e) {
         // Ignore comment fetch errors
@@ -128,7 +138,7 @@ try {
   const apiUrl = new URL('/api/hn-data', Astro.url.origin);
   apiUrl.searchParams.set('days', '1');
   apiUrl.searchParams.set('offset', currentDayOffset.toString());
-  apiUrl.searchParams.set('posts', '10');
+  apiUrl.searchParams.set('posts', '50');
   apiUrl.searchParams.set('comments', '20');
   
   try {
@@ -142,7 +152,7 @@ try {
   } catch (apiError: any) {
     console.error('API endpoint error, falling back to direct fetch:', apiError);
     useDirectFetch = true;
-    data = await fetchHNDataDirectly(currentDayOffset, 10, 20);
+    data = await fetchHNDataDirectly(currentDayOffset, 50, 20);
   }
 } catch (err: any) {
   error = `Error fetching data: ${err.message}`;

@@ -54,12 +54,15 @@ const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
   
   {topComments.length > 0 && (
     <div class="post-comments">
-      <h3>Top Comments <span class="comment-count">({topComments.length})</span></h3>
-      <ul class="comments-list">
+      <div class="comments-header">
+        <h3>Top Comments <span class="comment-count">({topComments.length})</span></h3>
+        <button class="toggle-comments" data-action="expand">Show comments</button>
+      </div>
+      <ul class="comments-list hidden">
         {topComments.map(comment => (
           <li class="comment">
             <div class="comment-meta">
-              <span class="points">{comment.points} points</span> by 
+              <span class="comment-data">{comment.comment_text.length} chars</span> by 
               <a href={`https://news.ycombinator.com/user?id=${comment.author}`} target="_blank" rel="noopener noreferrer" class="author-link">{comment.author}</a>
               <div class="comment-links">
                 <a href={`https://news.ycombinator.com/item?id=${comment.objectID}`} 
@@ -83,6 +86,34 @@ const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
     </div>
   )}
 </div>
+
+<script>
+  // Add client-side script to toggle comments
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggleButtons = document.querySelectorAll('.toggle-comments');
+    
+    toggleButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const postComments = button.closest('.post-comments');
+        const commentsList = postComments?.querySelector('.comments-list');
+        
+        if (commentsList) {
+          const isHidden = commentsList.classList.contains('hidden');
+          
+          if (isHidden) {
+            commentsList.classList.remove('hidden');
+            button.textContent = 'Hide comments';
+            (button as HTMLElement).dataset.action = 'collapse';
+          } else {
+            commentsList.classList.add('hidden');
+            button.textContent = 'Show comments';
+            (button as HTMLElement).dataset.action = 'expand';
+          }
+        }
+      });
+    });
+  });
+</script>
 
 <style>
   .hn-post {
@@ -195,6 +226,27 @@ const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
     padding-top: 1rem;
   }
 
+  .comments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .toggle-comments {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .toggle-comments:hover {
+    background-color: #e5e5e5;
+  }
+
   .comment-count {
     font-size: 0.875rem;
     color: #666;
@@ -205,6 +257,10 @@ const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
     list-style: none;
     padding: 0;
     margin: 0;
+  }
+
+  .comments-list.hidden {
+    display: none;
   }
 
   .comment {
@@ -254,5 +310,10 @@ const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
 
   .comment-text :global(a:hover) {
     text-decoration: underline;
+  }
+
+  .comment-data {
+    color: #666;
+    font-weight: 600;
   }
 </style> 
