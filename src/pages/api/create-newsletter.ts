@@ -1,8 +1,13 @@
 import type { APIRoute } from 'astro';
-
+// Import default export as suggested by Vite error
+// import pkg from "@google/genai";
+// Destructure the class, using 'as any' to bypass TS static analysis error
+// const { GoogleGenerativeAI } = pkg as any;
 // Listmonk API configuration
 const LISTMONK_API_URL = import.meta.env.ASTRO_LISTMONK_API_URL || 'http://localhost:9000';
 const LISTMONK_API_KEY = import.meta.env.ASTRO_LISTMONK_API_KEY || '';
+// Google AI API configuration
+const GOOGLE_AI_API_KEY = import.meta.env.ASTRO_GOOGLE_AI_API_KEY || '';
 
 interface Comment {
   author: string;
@@ -103,7 +108,115 @@ async function fetchHNData(dayOffset = 0) {
   }
 }
 
-function generateNewsletterHTML(data: DayData): string {
+// Function to generate summary with Google AI using fetch
+async function generateSummaryWithGoogleAI(data: DayData): Promise<string> {
+  if (!GOOGLE_AI_API_KEY) {
+    console.warn('GOOGLE_AI_API_KEY not set, using fallback summary generation');
+    return `<p>No AI summary available - please set GOOGLE_AI_API_KEY in your environment variables.</p>`;
+  }
+
+  try {
+    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const postsData = data.posts.map(({ post }) => ({
+      title: post.title,
+      url: post.url || `https://news.ycombinator.com/item?id=${post.objectID}`,
+      points: post.points,
+      author: post.author,
+      commentCount: post.num_comments,
+    }));
+
+    // Updated prompt instructions AGAIN for an even simpler, phone-call style
+    const prompt = `
+Okay, act like you're calling your buddy on the phone to quickly tell them about the interesting Hacker News stuff from ${formattedDate}.
+
+Start with "Hey buddy,". Keep it super casual and use simple, everyday words. Don't be formal.
+
+Just hit the main points for the best 5-7 stories from this data:
+${JSON.stringify(postsData, null, 2)}
+
+Make sure it sounds like a real, quick chat. Point out anything useful or cool.
+
+Format the whole thing in HTML: Use <h2> for section headings, <p> for paragraphs, <strong> for emphasis, and <a> tags for links.
+NO MARKDOWN.
+`;
+
+    // Using v1beta endpoint for preview model
+    const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${GOOGLE_AI_API_KEY}`;
+
+    const requestBody = {
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      // You might need to adjust generationConfig/safetySettings based on API requirements
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 4096, // Adjust as needed
+        // responseMimeType: "text/html" // Optional: Specify if supported and desired
+      },
+      safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
+    };
+
+    console.log('Sending request to Google AI API via fetch...');
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Google AI API error:', response.status, errorText);
+      throw new Error(`Google AI API error: ${response.status} - ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    
+    // Check for potential errors or empty responses in the API result structure
+    if (!responseData.candidates || responseData.candidates.length === 0 || !responseData.candidates[0].content?.parts[0]?.text) {
+        console.error('Invalid response structure from Google AI API:', responseData);
+        throw new Error('Invalid or empty response received from Google AI API.');
+    }
+
+    const summaryText = responseData.candidates[0].content.parts[0].text;
+    
+    return summaryText;
+
+  } catch (error) {
+    console.error('Error generating summary with Google AI fetch:', error);
+    // Provide a more specific error message for fetch-related issues
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return `<p>Sorry, I couldn't generate a summary of today's Hacker News posts due to an API error: ${errorMessage}. Please check the server logs and API key.</p>`;
+  }
+}
+
+function generateNewsletterHTML(data: DayData, aiSummary: string): string {
   const date = new Date(data.dayStartISOString);
   const formattedDate = date.toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -130,6 +243,9 @@ function generateNewsletterHTML(data: DayData): string {
         .comment-text { margin-top: 5px; }
         .header { text-align: center; margin-bottom: 30px; }
         .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.9em; color: #666; }
+        .summary { background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        h1 { color: #f60; }
+        h2 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
       </style>
     </head>
     <body>
@@ -137,6 +253,12 @@ function generateNewsletterHTML(data: DayData): string {
         <h1>HN Buddy Daily Digest</h1>
         <p>${formattedDate}</p>
       </div>
+      
+      <div class="summary">
+        ${aiSummary}
+      </div>
+      
+      <h2>All Stories from Today</h2>
   `;
 
   data.posts.forEach(({ post, topComments }) => {
@@ -157,27 +279,6 @@ function generateNewsletterHTML(data: DayData): string {
         </div>
     `;
 
-    if (topComments.length > 0) {
-      html += `
-        <div class="comments">
-          <h3>Top Comments</h3>
-      `;
-
-      topComments.forEach(comment => {
-        html += `
-          <div class="comment">
-            <div class="comment-meta">
-              ${comment.comment_text.length} chars by 
-              <a href="https://news.ycombinator.com/user?id=${comment.author}">${comment.author}</a>
-            </div>
-            <div class="comment-text">${comment.comment_text}</div>
-          </div>
-        `;
-      });
-
-      html += `</div>`;
-    }
-
     html += `</div>`;
   });
 
@@ -197,6 +298,7 @@ export const POST: APIRoute = async ({ request }) => {
   console.log('--- Checking Environment Variables ---');
   console.log(`LISTMONK_API_URL from env: ${import.meta.env.ASTRO_LISTMONK_API_URL}`);
   console.log(`LISTMONK_API_KEY from env (exists): ${!!import.meta.env.ASTRO_LISTMONK_API_KEY}`); 
+  console.log(`GOOGLE_AI_API_KEY from env (exists): ${!!import.meta.env.ASTRO_GOOGLE_AI_API_KEY}`);
   console.log(`Using LISTMONK_API_URL: ${LISTMONK_API_URL}`);
   console.log('------------------------------------');
 
@@ -244,10 +346,17 @@ export const POST: APIRoute = async ({ request }) => {
     // ---- End Connection Test ----
 
     // Fetch HN data for yesterday
+    console.log('Fetching HN data...');
     const data = await fetchHNData(1);
+    console.log('HN data fetched successfully.');
     
-    // Generate HTML content
-    const htmlContent = generateNewsletterHTML(data);
+    // Generate AI summary with Google AI (will be updated next)
+    console.log('Generating AI summary with Google AI...');
+    const aiSummary = await generateSummaryWithGoogleAI(data); 
+    console.log('AI summary generated successfully.');
+    
+    // Generate HTML content with AI summary
+    const htmlContent = generateNewsletterHTML(data, aiSummary);
     
     // Format the date part of the campaign name/subject
     const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('en-US', {
