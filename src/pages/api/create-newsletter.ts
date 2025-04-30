@@ -226,6 +226,7 @@ NO MARKDOWN.
   }
 }
 
+// Updated function to generate only the HTML content fragment for Listmonk
 function generateNewsletterHTML(data: DayData, aiSummary: string): string {
   const date = new Date(data.dayStartISOString);
   const formattedDate = date.toLocaleDateString('en-US', { 
@@ -235,73 +236,48 @@ function generateNewsletterHTML(data: DayData, aiSummary: string): string {
     day: 'numeric' 
   });
 
+  // Start with the header, then the content fragment
   let html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .post { margin-bottom: 30px; padding: 20px; border: 1px solid #eee; border-radius: 4px; }
-        .post-title { margin: 0 0 10px 0; font-size: 1.4em; }
-        .post-title a { color: #000; text-decoration: none; }
-        .post-meta { font-size: 0.9em; color: #666; margin-bottom: 15px; }
-        .points { color: #f60; font-weight: 600; }
-        .comments { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
-        .comment { margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 4px; }
-        .comment-meta { font-size: 0.9em; color: #666; margin-bottom: 5px; }
-        .comment-text { margin-top: 5px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.9em; color: #666; }
-        .summary { background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
-        h1 { color: #f60; }
-        h2 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>HN Buddy Daily Digest</h1>
+      <div class="header" style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #f60;">HN Buddy Daily Digest</h1>
         <p>${formattedDate}</p>
       </div>
       
-      <div class="summary">
+      <div class="summary" style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
         ${aiSummary}
       </div>
       
-      <h2>All Stories from Today</h2>
+      <h2 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">All Stories from Today</h2>
   `;
 
-  data.posts.forEach(({ post, topComments }) => {
+  data.posts.forEach(({ post }) => { // Removed topComments from destructuring as it's not used here anymore
     const postUrl = post.url || `https://news.ycombinator.com/item?id=${post.objectID}`;
     const hnPostUrl = `https://news.ycombinator.com/item?id=${post.objectID}`;
     const hostname = post.url ? new URL(post.url).hostname : 'news.ycombinator.com';
 
     html += `
-      <div class="post">
-        <h2 class="post-title">
-          <a href="${postUrl}">${post.title}</a>
+      <div class="post" style="margin-bottom: 30px; padding: 20px; border: 1px solid #eee; border-radius: 4px;">
+        <h2 class="post-title" style="margin: 0 0 10px 0; font-size: 1.4em;">
+          <a href="${postUrl}" style="color: #000; text-decoration: none;">${post.title}</a>
           <span style="font-size: 0.8em; color: #666;">(${hostname})</span>
         </h2>
-        <div class="post-meta">
-          <span class="points">${post.points} points</span> by 
+        <div class="post-meta" style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
+          <span class="points" style="color: #f60; font-weight: 600;">${post.points} points</span> by 
           <a href="https://news.ycombinator.com/user?id=${post.author}">${post.author}</a> | 
           <a href="${hnPostUrl}">${post.num_comments} comments</a>
         </div>
+      </div>
     `;
-
-    html += `</div>`;
   });
 
-  html += `
-      <div class="footer">
-        <p>Built with <a href="https://astro.build">Astro</a> | 
-        Data from <a href="https://news.ycombinator.com">Hacker News</a></p>
-      </div>
-    </body>
-    </html>
-  `;
+  // REMOVED: HTML closing tags and footer
+  // html += `
+  //     <div class="footer">...</div>
+  //   </body>
+  //   </html>
+  // `;
 
-  return html;
+  return html; // Return the fragment including the header
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -365,31 +341,29 @@ export const POST: APIRoute = async ({ request }) => {
     const aiSummary = await generateSummaryWithGoogleAI(data); 
     console.log('AI summary generated successfully.');
     
-    // Generate HTML content with AI summary
-    const htmlContent = generateNewsletterHTML(data, aiSummary);
+    // Generate HTML content fragment
+    const htmlContentFragment = generateNewsletterHTML(data, aiSummary);
     
-    // Format the date part of the campaign name/subject
     const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
     
-    // Prepare the campaign payload according to Listmonk API docs
+    // Prepare the campaign payload with the HTML fragment
     const campaignPayload = {
       name: `HN Buddy Daily Digest - ${formattedDate}`,
       subject: `HN Buddy Daily Digest - ${formattedDate}`,
-      lists: [1], // Default list ID in Listmonk
-      type: "regular", // Per docs: 'regular' or 'optin'
-      content_type: "html", // Per docs: 'richtext', 'html', 'markdown', 'plain'
-      body: htmlContent,
-      // Optional fields:
-      from_email: "HN Buddy <noreply@example.com>", // Change to your email
+      lists: [1], 
+      type: "regular",
+      content_type: "html",
+      body: htmlContentFragment, // Use the fragment directly
+      from_email: "HN Buddy <noreply@example.com>",
       messenger: "email",
       tags: ["daily-digest", "hacker-news"]
     };
     
-    console.log('Sending campaign creation payload:', JSON.stringify(campaignPayload, null, 2));
+    console.log('Sending campaign creation payload with HTML fragment...');
     
     // Create campaign in Listmonk using Basic Auth
     const credentials = LISTMONK_API_KEY; // Should be in format "username:password"
