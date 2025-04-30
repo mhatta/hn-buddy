@@ -123,21 +123,31 @@ async function generateSummaryWithGoogleAI(data: DayData): Promise<string> {
       day: 'numeric'
     });
 
-    const postsData = data.posts.map(({ post }) => ({
-      title: post.title,
-      url: post.url || `https://news.ycombinator.com/item?id=${post.objectID}`,
-      points: post.points,
-      author: post.author,
-      commentCount: post.num_comments,
-    }));
+    // Prepare data for Google AI, now including top 5 comments
+    const postsData = data.posts.map(({ post, topComments }) => {
+      const topCommentsText = topComments.slice(0, 5).map(comment => 
+        `Comment by ${comment.author}: ${comment.comment_text.substring(0, 300)}${comment.comment_text.length > 300 ? '...' : ''}`
+      ).join('\n\n'); // Join comments with double newline
 
-    // Updated prompt instructions AGAIN for an even simpler, phone-call style
+      return {
+        title: post.title,
+        url: post.url || `https://news.ycombinator.com/item?id=${post.objectID}`,
+        points: post.points,
+        author: post.author,
+        commentCount: post.num_comments,
+        topComments: topCommentsText // Added top comments back
+      };
+    });
+
+    // Updated prompt to include comments again
     const prompt = `
 Okay, act like you're calling your buddy on the phone to quickly tell them about the interesting Hacker News stuff from ${formattedDate}.
 
 Start with "Hey buddy,". Keep it super casual and use simple, everyday words. Don't be formal.
 
-Just hit the main points for the best 5-7 stories from this data:
+Below is the data, including the top 5 comments for each post. Just hit the main points for the best 5-7 stories, and mention any cool or surprising things from the comments if you see any.
+
+Here's the data:
 ${JSON.stringify(postsData, null, 2)}
 
 Make sure it sounds like a real, quick chat. Point out anything useful or cool.
