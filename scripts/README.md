@@ -58,24 +58,35 @@ Before deploying to Railway, you can test locally:
    cd scripts
    ```
 
-2. Initialize a new Railway project (first time only):
+2. Set up your Railway project:
    ```bash
+   # Log in to Railway if you haven't already
+   railway login
+
+   # Create a new project (first time only)
    railway init
+   # OR link to an existing project
+   railway link
    ```
 
-3. Add necessary environment variables:
+3. Create a service:
    ```bash
-   railway variables set LISTMONK_API_URL=http://your-listmonk-url:9000
-   railway variables set LISTMONK_API_KEY=your-listmonk-api-key
-   railway variables set GOOGLE_AI_API_KEY=your-google-ai-api-key
+   # Create a new service named "scheduler" in your project
+   railway add --service scheduler
    ```
 
-4. Deploy to Railway:
+4. Add necessary environment variables:
+   ```bash
+   # Set variables for your service
+   railway variables --set "LISTMONK_API_URL=http://your-listmonk-url:9000" --set "LISTMONK_API_KEY=your-listmonk-api-key" --set "GOOGLE_AI_API_KEY=your-google-ai-api-key"
+   ```
+
+5. Deploy to Railway:
    ```bash
    railway up
    ```
 
-5. Open the dashboard to verify deployment:
+6. Open the dashboard to verify deployment:
    ```bash
    railway open
    ```
@@ -83,7 +94,7 @@ Before deploying to Railway, you can test locally:
 ## Managing the Scheduler
 
 - **View logs**: `railway logs`
-- **Restart service**: `railway service restart`
+- **Restart service**: `railway redeploy`
 - **Update service**: Make changes and run `railway up` again
 
 ## Testing
