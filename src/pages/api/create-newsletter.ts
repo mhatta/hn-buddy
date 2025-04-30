@@ -289,20 +289,66 @@ export const POST: APIRoute = async ({ request }) => {
   console.log('------------------------------------');
 
   try {
+    // ---- Shared Credentials ----
+    const credentials = LISTMONK_API_KEY;
+    const encoded = btoa(credentials);
+
+    // ---- Idempotency Check ----
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStart = getStartOfDayUTC(yesterday); // Use the helper
+    const formattedDateCheck = yesterdayStart.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    const expectedCampaignName = `HN Buddy Daily Digest - ${formattedDateCheck}`;
+    console.log(`Checking for existing campaign named: ${expectedCampaignName}`);
+
+    // Use the shared encoded credentials
+    const checkUrl = `${LISTMONK_API_URL}/api/campaigns?query=${encodeURIComponent(expectedCampaignName)}&page=1&per_page=1`; // Query by name
+
+    const checkResponse = await fetch(checkUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${encoded}` // Use shared encoded value
+        }
+      });
+
+    if (!checkResponse.ok) {
+        // Log the error but proceed cautiously - maybe Listmonk is temporarily down?
+        // Or handle specific errors like 401/403 differently?
+        const errorText = await checkResponse.text();
+        console.warn(`Failed to check for existing campaigns (Status ${checkResponse.status}): ${errorText}. Proceeding with caution...`);
+    } else {
+        const checkData = await checkResponse.json();
+        if (checkData.data?.results && checkData.data.results.length > 0) {
+            console.log(`Campaign '${expectedCampaignName}' already exists (ID: ${checkData.data.results[0].id}). Skipping creation.`);
+            return new Response(JSON.stringify({ 
+                success: true,
+                message: `Newsletter for ${formattedDateCheck} already sent. Skipped.`,
+                skipped: true
+            }), {
+                status: 200, // It's not an error, it's a successful skip
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        console.log(`No existing campaign found for ${formattedDateCheck}. Proceeding to create.`);
+    }
+    // ---- End Idempotency Check ----
+
     // ---- Basic Listmonk Connection Test ----
     try {
       // Use Listmonk's lists endpoint for a basic check
       const healthCheckUrl = `${LISTMONK_API_URL}/api/lists`;
       console.log(`Attempting Listmonk connection test to: ${healthCheckUrl}`);
       
-      // Using Basic Auth format as shown in docs
-      const credentials = LISTMONK_API_KEY; // Should be in format "username:password"
-      const encoded = btoa(credentials);
+      // No need to re-declare credentials or encoded here
 
       const healthResponse = await fetch(healthCheckUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Basic ${encoded}`
+          'Authorization': `Basic ${encoded}` // Use shared encoded value
         }
       });
 
@@ -332,8 +378,10 @@ export const POST: APIRoute = async ({ request }) => {
     // ---- End Connection Test ----
 
     // Fetch HN data for yesterday
-    console.log('Fetching HN data...');
-    const data = await fetchHNData(1);
+    console.log('Fetching HN data for', yesterdayStart.toISOString());
+    // Pass the specific date to fetchHNData if modified to accept it, otherwise use offset 1.
+    // Assuming fetchHNData still uses offset internally for simplicity here.
+    const data = await fetchHNData(1); 
     console.log('HN data fetched successfully.');
     
     // Generate AI summary with Google AI (will be updated next)
@@ -352,28 +400,27 @@ export const POST: APIRoute = async ({ request }) => {
     
     // Prepare the campaign payload with the HTML fragment
     const campaignPayload = {
-      name: `HN Buddy Daily Digest - ${formattedDate}`,
-      subject: `HN Buddy Daily Digest - ${formattedDate}`,
+      name: expectedCampaignName, 
+      subject: expectedCampaignName, 
       lists: [1], 
       type: "regular",
       content_type: "html",
-      body: htmlContentFragment, // Use the fragment directly
+      body: htmlContentFragment, 
       from_email: "HN Buddy <noreply@example.com>",
       messenger: "email",
-      tags: ["daily-digest", "hacker-news"]
+      tags: ["daily-digest", "hacker-news", `date:${formattedDateCheck}`] 
     };
     
     console.log('Sending campaign creation payload with HTML fragment...');
     
     // Create campaign in Listmonk using Basic Auth
-    const credentials = LISTMONK_API_KEY; // Should be in format "username:password"
-    const encoded = btoa(credentials);
+    // No need to re-declare credentials or encoded here
     
     const campaignResponse = await fetch(`${LISTMONK_API_URL}/api/campaigns`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${encoded}`
+        'Authorization': `Basic ${encoded}` // Use shared encoded value
       },
       body: JSON.stringify(campaignPayload)
     });
@@ -393,7 +440,7 @@ export const POST: APIRoute = async ({ request }) => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${encoded}`
+        'Authorization': `Basic ${encoded}` // Use shared encoded value
       },
       body: JSON.stringify({ status: "running" })
     });
@@ -410,9 +457,7 @@ export const POST: APIRoute = async ({ request }) => {
       campaignId: campaign.data.id
     }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Newsletter creation error:', error);
