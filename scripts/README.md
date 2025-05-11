@@ -112,4 +112,34 @@ You can manually trigger the newsletter by visiting the `/trigger` endpoint. The
 
 ## Customizing the Schedule
 
-Edit the `CRON_SCHEDULE` variable in `scheduler.js` to change when the newsletter is sent. The default is `0 8 * * *` (daily at 8:00 UTC). 
+Edit the `CRON_SCHEDULE` variable in `scheduler.js` to change when the newsletter is sent. The default is `0 8 * * *` (daily at 8:00 UTC).
+
+## Features
+
+- **Daily Newsletters**: Automated daily digest of top Hacker News content
+- **AI Summaries**: Uses Google Gemini AI to create conversational summaries
+- **Listmonk Integration**: Sends newsletters via Listmonk email platform
+- **Public Archive**: Automatically publishes newsletters to Listmonk's public archive
+- **Railway Deployment**: Easy deployment to Railway's platform
+
+## Listmonk Public Archive
+
+The scheduler automatically publishes each newsletter to Listmonk's public archive. This creates a browsable collection of past newsletters that can be accessed without subscribing.
+
+### Accessing the Archive
+
+To view the public archive:
+
+1. Go to your Listmonk instance's web interface
+2. Navigate to the public pages (typically at `/public` or `/archive`)
+3. Browse past newsletter issues by date
+
+### Configuration
+
+Public archiving is enabled by default. The following metadata is included:
+
+- **Title**: The newsletter subject line
+- **Description**: Brief description including the date
+- **Tags**: "daily-digest", "hacker-news", and the date
+
+To disable public archiving, edit `scripts/lib/newsletter.js` and change `archive: true` to `archive: false` in the `campaignPayload` object. 
