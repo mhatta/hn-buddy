@@ -366,7 +366,7 @@ export async function generateAndSendNewsletter() {
       type: "regular",
       content_type: "html",
       body: htmlContentFragment, 
-      from_email: "HN Buddy <daily@digest.hn-buddy.com>",
+      from_email: "HN Buddy <noreply@example.com>",
       messenger: "email",
       tags: ["daily-digest", "hacker-news", `date:${formattedDateCheck}`] 
     };
