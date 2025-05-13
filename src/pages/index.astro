@@ -1,165 +1,14 @@
 ---
-import DayPosts from '../components/DayPosts.astro';
+// import DayPosts from '../components/DayPosts.astro'; // Removed as DayPosts component is no longer used here
 import '../styles/global.css';
-
-// Define types for our data
-interface Comment {
-  author: string;
-  comment_text: string;
-  created_at: string;
-  objectID: string;
-  points: number;
-  story_id: string;
-}
-
-interface Post {
-  title: string;
-  url: string;
-  author: string;
-  points: number;
-  created_at: string;
-  objectID: string;
-  num_comments: number;
-}
-
-interface PostWithComments {
-  post: Post;
-  topComments: Comment[];
-}
-
-interface DayData {
-  dayStartISOString: string;
-  posts: PostWithComments[];
-  error?: string;
-}
-
-// Function to fetch directly from HN Algolia API
-async function fetchHNDataDirectly(dayOffset = 0, postsPerDay = 30, commentsPerPost = 20) {
-  const results = [];
-  const now = new Date();
-  
-  function getStartOfDayUTC(date: Date): Date {
-    const d = new Date(date);
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
-  }
-
-  // Calculate the day we're fetching (dayOffset days ago)
-  const dayRef = new Date(now);
-  dayRef.setDate(dayRef.getDate() - dayOffset);
-  
-  const dayStart = getStartOfDayUTC(dayRef);
-  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-  const numericDayStart = Math.floor(dayStart.getTime() / 1000);
-  const numericDayEnd = Math.floor(dayEnd.getTime() / 1000);
-  
-  // Match the API endpoint that works correctly
-  try {
-    const algoliaURL = `https://hn.algolia.com/api/v1/search?tags=story&numericFilters=created_at_i>=${numericDayStart},created_at_i<${numericDayEnd}&hitsPerPage=${postsPerDay}`;
-    const algoliaResp = await fetch(algoliaURL);
-    
-    if (!algoliaResp.ok) {
-      results.push({
-        dayStartISOString: dayStart.toISOString(),
-        posts: []
-      });
-      return { results };
-    }
-    
-    const algoliaJSON = await algoliaResp.json();
-    const hits = algoliaJSON.hits || [];
-    
-    // No need for extra sorting, API returns results sorted by popularity
-    const postsWithComments = [];
-    
-    for (const post of hits) {
-      // Use Algolia API to fetch comments for this story
-      let topComments = [];
-      try {
-        const commentsURL = `https://hn.algolia.com/api/v1/search?tags=comment,story_${post.objectID}&hitsPerPage=${commentsPerPost}`;
-        const commentsResp = await fetch(commentsURL);
-        
-        if (commentsResp.ok) {
-          const commentsJSON = await commentsResp.json();
-          
-          // Filter valid comments and sort by length
-          topComments = (commentsJSON.hits || [])
-            .filter((comment: any) => comment && comment.author && comment.comment_text)
-            .sort((a: any, b: any) => {
-              // Sort by comment length
-              const lengthA = a.comment_text ? a.comment_text.length : 0;
-              const lengthB = b.comment_text ? b.comment_text.length : 0;
-              
-              if (lengthB !== lengthA) {
-                return lengthB - lengthA; // Longer comments first
-              }
-              
-              // Then by recency
-              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-            });
-        }
-      } catch (e) {
-        // Ignore comment fetch errors
-      }
-      
-      postsWithComments.push({
-        post,
-        topComments
-      });
-    }
-    
-    results.push({
-      dayStartISOString: dayStart.toISOString(),
-      posts: postsWithComments
-    });
-  } catch (error) {
-    results.push({
-      dayStartISOString: dayStart.toISOString(),
-      error: "Failed to fetch posts",
-      posts: []
-    });
-  }
-  
-  return { results };
-}
+import GitHubButton from '../components/GitHubButton.astro';
 
 // Get day offset from URL parameters
 const currentDayOffset = parseInt(Astro.url.searchParams.get('day') || '0');
 const formattedDate = new Date();
 formattedDate.setDate(formattedDate.getDate() - currentDayOffset);
 
-// Initialize data and error state
-let data: { results: DayData[] } = { results: [] };
-let error: string | undefined = undefined;
-let useDirectFetch = false;
-
-try {
-  // Try to use our API endpoint first
-  const apiUrl = new URL('/api/hn-data', Astro.url.origin);
-  apiUrl.searchParams.set('days', '1');
-  apiUrl.searchParams.set('offset', currentDayOffset.toString());
-  apiUrl.searchParams.set('posts', '50');
-  apiUrl.searchParams.set('comments', '20');
-  
-  try {
-    const response = await fetch(apiUrl.toString());
-    
-    if (!response.ok) {
-      throw new Error(`API response not OK: ${response.status}`);
-    }
-    
-    data = await response.json();
-  } catch (apiError: any) {
-    console.error('API endpoint error, falling back to direct fetch:', apiError);
-    useDirectFetch = true;
-    data = await fetchHNDataDirectly(currentDayOffset, 50, 20);
-  }
-} catch (err: any) {
-  error = `Error fetching data: ${err.message}`;
-  console.error('Fetch error:', err);
-}
-
-// Pagination URLs
+// Pagination URLs (Kept as is)
 const prevDayUrl = new URL(Astro.url);
 prevDayUrl.searchParams.set('day', (currentDayOffset + 1).toString());
 
@@ -180,6 +29,18 @@ const dateOptions: Intl.DateTimeFormatOptions = {
   day: 'numeric' 
 };
 const displayDate = formattedDate.toLocaleDateString(undefined, dateOptions);
+
+// Enable static site generation with incremental rebuilds
+export const prerender = true;
+
+// This is similar to getStaticProps in Next.js
+// It tells Astro how long to cache this page before regenerating
+export const config = {
+  // Regenerate this page at most once per day (86400 seconds)
+  cache: {
+    maxAge: 86400,
+  },
+};
 ---
 
 <html lang="en">
@@ -188,14 +49,19 @@ const displayDate = formattedDate.toLocaleDateString(undefined, dateOptions);
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="description" content="HN Buddy - A daily digest of top Hacker News posts and comments" />
     <title>HN Buddy - {displayDate}</title>
   </head>
   <body>
     <header>
-      <div class="container">
+      <div class="container header-container">
+        <div class="header-content">
         <h1>HN Buddy</h1>
         <p>Daily digest of top Hacker News posts and comments</p>
-        {useDirectFetch && <span class="direct-fetch">Using direct HN API</span>}
+        </div>
+        <div class="header-actions">
+          <GitHubButton repo="herget/hn-buddy" />
+        </div>
       </div>
     </header>
     
@@ -224,20 +90,8 @@ const displayDate = formattedDate.toLocaleDateString(undefined, dateOptions);
     </nav>
     
     <main class="container">
-      {error ? (
-        <div class="error-message">
-          <p>{error}</p>
-          <p>Please try again later.</p>
-        </div>
-      ) : data.results.length === 0 ? (
-        <div class="loading">
-          <p>Loading Hacker News content...</p>
-        </div>
-      ) : (
-        data.results.map((day) => (
-          <DayPosts dayStartISOString={day.dayStartISOString} posts={day.posts} />
-        ))
-      )}
+      <!-- Content will go here -->
+      <p>Welcome to HN Buddy! Content display is being refactored.</p>
     </main>
     
     <footer>
@@ -253,13 +107,19 @@ const displayDate = formattedDate.toLocaleDateString(undefined, dateOptions);
 </html>
 
 <style>
-  .direct-fetch {
-    background-color: #ff6600;
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    margin-left: 1rem;
+  .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .header-content {
+    flex: 1;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 1rem;
   }
   
   .error-message {
@@ -268,12 +128,6 @@ const displayDate = formattedDate.toLocaleDateString(undefined, dateOptions);
     border: 1px solid #ffcccc;
     border-radius: 4px;
     margin-bottom: 1rem;
-  }
-  
-  .loading {
-    padding: 2rem;
-    text-align: center;
-    color: #666;
   }
   
   .day-nav {
@@ -357,6 +211,16 @@ const displayDate = formattedDate.toLocaleDateString(undefined, dateOptions);
   }
   
   @media (max-width: 640px) {
+    .header-container {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .header-actions {
+      width: 100%;
+    }
+    
     .day-nav-inner {
       flex-direction: column;
       gap: 1rem;

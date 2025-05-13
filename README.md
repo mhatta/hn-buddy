@@ -59,11 +59,13 @@ See the [scheduler README](scripts/README.md) for detailed instructions on setti
 
 ## Environment Variables
 
-| Variable | Description | Required For |
-|----------|-------------|-------------|
-| `LISTMONK_API_URL` | URL of your Listmonk instance | Newsletter generation |
-| `LISTMONK_API_KEY` | API key for Listmonk | Newsletter generation |
-| `GOOGLE_AI_API_KEY` | Google AI API key for Gemini | AI summary generation |
+| Variable | Description | Required For | Format |
+|----------|-------------|-------------|--------|
+| `ASTRO_LISTMONK_API_URL` | URL of your Listmonk instance | Newsletter generation | URL (e.g., `http://your-listmonk-url:9000`) |
+| `ASTRO_LISTMONK_API_KEY` | API key for Listmonk | Newsletter generation | Format: `api_user:token` |
+| `GOOGLE_AI_API_KEY` | Google AI API key for Gemini | AI summary generation | Standard API key |
+
+**Note on Listmonk Authentication**: The `ASTRO_LISTMONK_API_KEY` must follow Listmonk's API authentication format of `api_user:token`. You can create API users with appropriate permissions in the Listmonk admin interface (Admin -> Users).
 
 ## Manual Newsletter Triggering
 
