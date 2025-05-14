@@ -98,8 +98,8 @@ if (!dateParseError && currentContentDate) {
 export const prerender = false; // SSR for all paths handled by this route
 
 // --- Listmonk API Fetching ---
-const LISTMONK_API_URL = import.meta.env.ASTRO_LISTMONK_API_URL;
-const LISTMONK_API_CREDENTIALS = import.meta.env.ASTRO_LISTMONK_API_KEY;
+const LISTMONK_API_URL = process.env.ASTRO_LISTMONK_API_URL;
+const LISTMONK_API_CREDENTIALS = process.env.ASTRO_LISTMONK_API_KEY;
 
 let campaignContent = '<p>Loading newsletter...</p>';
 let campaignNameForDisplay = 'N/A';
