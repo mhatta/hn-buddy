@@ -3,24 +3,13 @@
 import '../styles/global.css';
 import GitHubButton from '../components/GitHubButton.astro';
 
-// Get day offset from URL parameters
-const currentDayOffset = parseInt(Astro.url.searchParams.get('day') || '0');
-const formattedDate = new Date();
-formattedDate.setDate(formattedDate.getDate() - currentDayOffset);
+// --- Date Setup for Latest Digest (Yesterday) ---
+const today = new Date();
+const yesterday = new Date(today);
+yesterday.setDate(today.getDate() - 1);
 
-// Pagination URLs (Kept as is)
-const prevDayUrl = new URL(Astro.url);
-prevDayUrl.searchParams.set('day', (currentDayOffset + 1).toString());
-
-const nextDayUrl = new URL(Astro.url);
-if (currentDayOffset > 0) {
-  nextDayUrl.searchParams.set('day', (currentDayOffset - 1).toString());
-} else {
-  nextDayUrl.searchParams.set('day', '0');
-}
-
-const todayUrl = new URL(Astro.url);
-todayUrl.searchParams.set('day', '0');
+const dayBeforeYesterday = new Date(today);
+dayBeforeYesterday.setDate(today.getDate() - 2);
 
 const dateOptions: Intl.DateTimeFormatOptions = { 
   weekday: 'long', 
@@ -28,31 +17,39 @@ const dateOptions: Intl.DateTimeFormatOptions = {
   month: 'long', 
   day: 'numeric' 
 };
-const displayDate = formattedDate.toLocaleDateString(undefined, dateOptions);
 
-// Enable static site generation with incremental rebuilds
+const displayDateForNav = yesterday.toLocaleDateString(undefined, dateOptions);
+const hnSearchApiDateStart = Math.floor(new Date(yesterday).setUTCHours(0,0,0,0)/1000);
+const hnSearchApiDateEnd = Math.floor(new Date(yesterday).setUTCHours(23,59,59,999)/1000);
+
+// --- Navigation URLs ---
+// Previous day will point to a dynamic route for the day before yesterday
+const prevDayIsoDate = `${dayBeforeYesterday.getFullYear()}-${String(dayBeforeYesterday.getMonth() + 1).padStart(2, '0')}-${String(dayBeforeYesterday.getDate()).padStart(2, '0')}`;
+const prevDayUrl = `/${prevDayIsoDate}`;
+
+const latestDigestUrl = '/'; // Link to self for "Latest Digest"
+
+// Enable static site generation with incremental rebuilds (applies if using an adapter that supports ISR)
 export const prerender = true;
 
-// This is similar to getStaticProps in Next.js
-// It tells Astro how long to cache this page before regenerating
+// This might be superseded by dynamic Cache-Control headers for SSR deployments
 export const config = {
-  // Regenerate this page at most once per day (86400 seconds)
   cache: {
-    maxAge: 86400,
+    maxAge: 86400, // Cache for 24 hours
   },
 };
 
+// --- Listmonk API Fetching for Yesterday's Digest ---
 const LISTMONK_API_URL = import.meta.env.ASTRO_LISTMONK_API_URL;
-console.log('ASTRO_LISTMONK_API_URL as seen by Astro:', JSON.stringify(LISTMONK_API_URL)); // Added for debugging
+// console.log('ASTRO_LISTMONK_API_URL as seen by Astro:', JSON.stringify(LISTMONK_API_URL)); // Debug line, remove or keep as needed
 const LISTMONK_API_CREDENTIALS = import.meta.env.ASTRO_LISTMONK_API_KEY; // Expected format: "username:token"
 
 let campaignContent = '<p>Loading newsletter...</p>';
-let campaignNameForDisplay = 'N/A';
+let campaignNameForDisplay = 'N/A'; // This will be yesterday's campaign name
 let errorOccurred = false;
 
-// Helper function to get the start of a day in UTC
 function getStartOfDayUTC(date: Date): Date {
-  const d = new Date(date.getTime()); // Create a new Date object to avoid modifying the original
+  const d = new Date(date.getTime());
   d.setUTCHours(0, 0, 0, 0);
   return d;
 }
@@ -64,10 +61,6 @@ if (!LISTMONK_API_URL || !LISTMONK_API_CREDENTIALS) {
   errorOccurred = true;
 } else {
   try {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    
     const yesterdayStartUTC = getStartOfDayUTC(yesterday);
     const formattedDateCheck = yesterdayStartUTC.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -79,7 +72,6 @@ if (!LISTMONK_API_URL || !LISTMONK_API_CREDENTIALS) {
     campaignNameForDisplay = expectedCampaignName;
 
     const encodedCredentials = btoa(LISTMONK_API_CREDENTIALS);
-
     const listmonkCampaignsUrl = `${LISTMONK_API_URL}/api/campaigns`;
     const params = new URLSearchParams({
         query: expectedCampaignName,
@@ -87,50 +79,38 @@ if (!LISTMONK_API_URL || !LISTMONK_API_CREDENTIALS) {
         per_page: '1'
     });
     const checkUrl = `${listmonkCampaignsUrl}?${params.toString()}`;
-    
-    // console.log(`Fetching campaign from: ${checkUrl}`); // Uncomment for debugging
 
     const response = await fetch(checkUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Basic ${encodedCredentials}`
-      }
+      headers: { 'Authorization': `Basic ${encodedCredentials}` }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Failed to fetch campaign (Status ${response.status}): ${errorText}`);
       let displayError = `Listmonk API request failed with status ${response.status}.`;
-      if (response.status === 401) {
-        displayError += " Please check your API credentials (ASTRO_LISTMONK_API_KEY).";
-      } else if (response.status === 404 && LISTMONK_API_URL?.includes('localhost')) {
-        displayError += " Ensure Listmonk is running and accessible.";
-      }
+      if (response.status === 401) displayError += " Please check your API credentials.";
+      else if (response.status === 404 && LISTMONK_API_URL?.includes('localhost')) displayError += " Ensure Listmonk is running.";
       throw new Error(displayError);
     }
 
     const responseData = await response.json();
-
     if (responseData.data?.results && responseData.data.results.length > 0) {
       const campaign = responseData.data.results[0];
       if (campaign.body) {
         campaignContent = campaign.body;
         Astro.response.headers.set('Cache-Control', 'public, max-age=86400, s-maxage=86400');
       } else {
-        console.warn(`Campaign "${expectedCampaignName}" found, but its 'body' field is missing or empty.`, campaign);
         campaignContent = `<p>The newsletter for "${expectedCampaignName}" was found, but its content is currently unavailable.</p>`;
         errorOccurred = true;
       }
     } else {
-      console.log(`No campaign found with the name "${expectedCampaignName}".`);
-      campaignContent = `<p>No newsletter found for "${expectedCampaignName}". It might not have been generated yet, or the name might be incorrect.</p>`;
+      campaignContent = `<p>No newsletter found for "${expectedCampaignName}". It might not have been generated yet.</p>`;
       Astro.response.headers.set('Cache-Control', 'public, max-age=3600, s-maxage=3600');
     }
-
   } catch (error: unknown) {
-    console.error("Error fetching or processing newsletter:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    campaignContent = `<p><strong>Error loading newsletter:</strong> ${errorMessage}. Please try again later or check server logs.</p>`;
+    campaignContent = `<p><strong>Error loading newsletter:</strong> ${errorMessage}. Please check server logs.</p>`;
     campaignNameForDisplay = 'Error';
     errorOccurred = true;
   }
@@ -141,6 +121,18 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
 } else if (errorOccurred) {
     Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300');
 }
+
+let pageTitleSuffix;
+if (campaignNameForDisplay && campaignNameForDisplay.startsWith('HN Buddy Daily Digest - ')) {
+  pageTitleSuffix = campaignNameForDisplay.replace('HN Buddy Daily Digest - ', '');
+} else if (campaignNameForDisplay === 'Configuration Error') {
+  pageTitleSuffix = "Configuration Error";
+} else if (campaignNameForDisplay === 'Error') {
+  pageTitleSuffix = "Error Loading Digest";
+} else {
+  pageTitleSuffix = displayDateForNav; // Use yesterday's date for title if campaign name is unusual but not an error
+}
+const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
 ---
 
 <html lang="en">
@@ -149,8 +141,8 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content="HN Buddy - A daily digest of top Hacker News posts and comments" />
-    <title>HN Buddy - {displayDate}</title>
+    <meta name="description" content={`HN Buddy - A daily digest of top Hacker News posts and comments for ${pageTitleSuffix}`} />
+    <title>{pageTitle}</title>
   </head>
   <body>
     <header>
@@ -167,15 +159,15 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
     
     <nav class="day-nav container">
       <div class="day-nav-inner">
-        <a href={prevDayUrl.toString()} class="nav-btn prev-day">
+        <a href={prevDayUrl} class="nav-btn prev-day">
           <span class="nav-arrow">←</span> Previous Day
         </a>
         <div class="current-day">
-          <h2>{displayDate}</h2>
+          <h2>{displayDateForNav}</h2>
           <div class="day-meta">
-            <a href={todayUrl.toString()} class="today-link">Today</a>
+            <a href={latestDigestUrl} class="today-link">Latest Digest</a>
             |
-            <a href={`https://hn.algolia.com/?dateRange=custom&dateStart=${Math.floor(formattedDate.setHours(0,0,0,0)/1000)}&dateEnd=${Math.floor(formattedDate.setHours(23,59,59,999)/1000)}&type=story&query=&sort=byPopularity`} 
+            <a href={`https://hn.algolia.com/?dateRange=custom&dateStart=${hnSearchApiDateStart}&dateEnd=${hnSearchApiDateEnd}&type=story&query=&sort=byPopularity`} 
                target="_blank" 
                rel="noopener noreferrer"
                class="api-link">
@@ -183,7 +175,7 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
             </a>
           </div>
         </div>
-        <a href={nextDayUrl.toString()} class={`nav-btn next-day ${currentDayOffset === 0 ? 'disabled' : ''}`}>
+        <a href="#" class="nav-btn next-day disabled" aria-disabled="true" onclick="return false;">
           Next Day <span class="nav-arrow">→</span>
         </a>
       </div>
@@ -210,6 +202,7 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
 </html>
 
 <style>
+  /* Ensure global.css is imported or necessary base styles are present */
   .header-container {
     display: flex;
     justify-content: space-between;
@@ -225,17 +218,35 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
     gap: 1rem;
   }
   
-  .error-message {
+  .error-message { /* This class seems unused, status-message is used instead */
     padding: 1rem;
     background-color: #ffeeee;
     border: 1px solid #ffcccc;
     border-radius: 4px;
     margin-bottom: 1rem;
   }
+
+  .status-message {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 1.05em;
+  }
+  .status-message.error {
+      background-color: #ffebee; /* Light red */
+      color: #c62828; /* Dark red */
+      border: 1px solid #e57373; /* Softer red border */
+  }
+  .status-message.info {
+      background-color: #e3f2fd; /* Light blue */
+      color: #1565c0; /* Dark blue */
+      border: 1px solid #64b5f6; /* Softer blue border */
+  }
   
   .day-nav {
     margin-bottom: 2rem;
-    margin-top: -1rem;
+    margin-top: -1rem; /* Adjust if needed based on header style */
   }
   
   .day-nav-inner {
@@ -271,7 +282,7 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
   }
   
   .api-link {
-    color: #9c9c9c;
+    color: #9c9c9c; /* Softer color for the external link */
   }
   
   .today-link:hover, .api-link:hover {
@@ -298,6 +309,7 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
   .nav-btn.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    pointer-events: none; /* To prevent click if using just href="#" and CSS to style */
   }
   
   .nav-arrow {
@@ -312,6 +324,28 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
   .next-day .nav-arrow {
     margin-left: 0.5rem;
   }
+
+  .newsletter-container {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 25px;
+    margin-top: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  .newsletter-container .header { text-align: center; margin-bottom: 30px; }
+  .newsletter-container .header h1 { color: #f60; font-size: 1.8em !important; } 
+  .newsletter-container .summary { background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+  .newsletter-container h2 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; font-size: 1.5em; }
+  .newsletter-container .post { margin-bottom: 30px; padding: 20px; border: 1px solid #eee; border-radius: 4px; }
+  .newsletter-container .post-title { margin: 0 0 10px 0; font-size: 1.4em; }
+  .newsletter-container .post-title a { color: #000; text-decoration: none; }
+  .newsletter-container .post-title a:hover { text-decoration: underline; }
+  .newsletter-container .post-title span { font-size: 0.8em; color: #666; margin-left: 5px; }
+  .newsletter-container .post-meta { font-size: 0.9em; color: #666; margin-bottom: 15px; }
+  .newsletter-container .post-meta a { color: #007bff; text-decoration: none; }
+  .newsletter-container .post-meta a:hover { text-decoration: underline; }
+  .newsletter-container .post-meta .points { color: #f60; font-weight: 600; }
   
   @media (max-width: 640px) {
     .header-container {
@@ -322,6 +356,7 @@ if (errorOccurred && campaignNameForDisplay === 'Configuration Error') {
     
     .header-actions {
       width: 100%;
+      /* Consider centering or other responsive adjustments for actions */
     }
     
     .day-nav-inner {
