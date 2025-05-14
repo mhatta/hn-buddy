@@ -14,10 +14,8 @@ The scheduler runs as a separate service on Railway and:
 ## Project Structure
 
 - `scheduler.js` - The main scheduler service that runs the cron job
-- `lib/newsletter.js` - A copy of the newsletter generation code 
+- `lib/newsletter.js` - Newsletter generation code 
 - `package.json` - Dependencies and configuration for Railway
-
-> **Note:** The `lib/newsletter.js` file is a standalone copy of the shared library. This is necessary because Railway only deploys the contents of the `scripts` directory, not the parent project.
 
 ## Local Testing
 

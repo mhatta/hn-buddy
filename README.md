@@ -1,143 +1,105 @@
-# HN Buddy
+# HN Buddy 🤖
 
-A daily digest of top Hacker News posts and comments.
+**My open-source, self-hostable Hacker News daily digest.**
 
-## Project Structure
+I built HN Buddy because I often found myself lost in Hacker News comments, worried I was missing out on cool new APIs or products. This is my solution to get a quick, digestible overview.
 
-This project combines two parts:
+It uses a simple scheduler to grab the top 10 Hacker News posts from the previous day and then feeds them to the Gemini 2.5 API (which is free for now) for a summary.
 
-1. **Astro Web App**: The main application that displays Hacker News content
-2. **Newsletter Scheduler**: A service that runs on Railway to generate and send daily newsletters
+[<img src="https://img.shields.io/badge/Follow%20me%20on%20X-%40gherget-1DA1F2?style=for-the-badge&logo=x" alt="Follow @gherget on X" />](https://x.com/gherget)
 
-## Components
 
-- `src/` - Astro application code
-  - `pages/` - Page components
-    - `index.astro` - Main page with Hacker News display
-    - `api/create-newsletter.ts` - API endpoint for manual newsletter triggering
-  - `components/` - Reusable components
-  - `styles/` - CSS styles
+## ✨ What it does
 
-- `lib/` - Shared code
-  - `newsletter.ts` - Core newsletter generation logic (used by both the API and scheduler)
+*   **Daily Digest:** Get the key takeaways from Hacker News top stories.
+*   **AI Summaries:** Uses Gemini 2.5 to summarize content.
+*   **Self-Hostable:** You can run it all yourself.
+*   **Affordable:** The scheduler part, I run on [Railway](https://railway.app/) for about $0.80/month. The Listmonk instance (see below) costs me about $1.20/month on Railway.
+*   **Forkable:** Feel free to use this as a base for other daily newsletter ideas.
+*   **Subscriber Management:** I decided to use [Listmonk](https://github.com/knadh/listmonk) for managing subscribers and storing the digests. It's a self-hosted newsletter system.
+*   **Astro Frontend:** The web page showing the digests is built with [Astro](https://astro.build/), pulling data from the Listmonk API.
 
-- `scripts/` - Railway deployment
-  - `scheduler.js` - Cron-based scheduler for automated daily newsletters
-  - `package.json` - Dependencies for the scheduler
-  - `README.md` - Instructions for deploying to Railway
+## ⚙️ How It Works (The Gist)
 
-## Setup Instructions
+1.  **Scheduler (`scripts/`):** This is a daily cron job (I run mine on Railway).
+    *   It fetches the top 10 HN posts.
+    *   Gets Gemini 2.5 to summarize them.
+    *   Pops the summary into a new campaign in Listmonk and sends it out.
+2.  **Listmonk:**
+    *   Keeps track of subscribers.
+    *   Archives all the newsletters sent.
+    *   Has an API that the frontend uses to show the digests.
+3.  **Astro Web App (`src/`):**
+    *   This is the site that displays the newsletter content, fetched from Listmonk.
 
-### Main Application
+## 🚀 Getting Started
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+### 1. Set up Listmonk
 
-2. Setup environment variables (for local development):
-   - Create `.env` file with:
-     ```
-     LISTMONK_API_URL=http://your-listmonk-url:9000
-     LISTMONK_API_KEY=your-listmonk-api-key
-     GOOGLE_AI_API_KEY=your-google-ai-api-key
-     ```
+You'll need a Listmonk instance. You can host it yourself or use a managed service. For a quick start, I recommend deploying it on Railway:
 
-3. Run development server:
-   ```bash
-   npm run dev
-   ```
+[![Deploy to Railway](https://railway.app/button.svg)](https://railway.app/template/listmonk)
+*(This will cost around $1.20 USD per month on Railway based on my usage.)*
 
-4. Build for production:
-   ```bash
-   npm run build
-   ```
+Alternatively, follow the [official Listmonk documentation](https://listmonk.app/docs/installation/) for other installation methods.
 
-### Newsletter Scheduler
+Once Listmonk is running:
+*   Note your Listmonk URL (e.g., `http://your-listmonk-domain.com:9000`).
+*   Create an API user in Listmonk (Admin -> Users) and get an API key (format: `api_user:token`).
 
-See the [scheduler README](scripts/README.md) for detailed instructions on setting up the Railway deployment.
+### 2. Set up the Newsletter Scheduler
 
-## Environment Variables
+The scheduler service is in the `scripts/` directory. It's set up to be deployed on Railway.
 
-| Variable | Description | Required For | Format |
-|----------|-------------|-------------|--------|
-| `ASTRO_LISTMONK_API_URL` | URL of your Listmonk instance | Newsletter generation | URL (e.g., `http://your-listmonk-url:9000`) |
-| `ASTRO_LISTMONK_API_KEY` | API key for Listmonk | Newsletter generation | Format: `api_user:token` |
-| `GOOGLE_AI_API_KEY` | Google AI API key for Gemini | AI summary generation | Standard API key |
+**For detailed instructions on setting up the scheduler, please see the [README in the scripts folder](./scripts/README.md).**
 
-**Note on Listmonk Authentication**: The `ASTRO_LISTMONK_API_KEY` must follow Listmonk's API authentication format of `api_user:token`. You can create API users with appropriate permissions in the Listmonk admin interface (Admin -> Users).
+That README covers:
+*   Forking the repository.
+*   Deploying to Railway.
+*   Required environment variables for the scheduler (like Listmonk details, Google AI API key, etc.).
 
-## Manual Newsletter Triggering
+### 3. Deploy the Astro Frontend to Cloudflare Pages
 
-While the scheduler handles automatic daily generation, you can manually trigger a newsletter by:
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fgherget%2Fhn-buddy)
 
-1. Using the API endpoint: Send a POST request to `/api/create-newsletter`
-2. Using the Railway scheduler: Visit the `/trigger` endpoint on your Railway app
+The Astro web app (in the root) shows the newsletters.
 
-```sh
-npm create astro@latest -- --template basics
-```
+1.  **Click the "Deploy to Cloudflare" button above** or go to your Cloudflare dashboard.
+2.  Connect your forked GitHub repository.
+3.  **Build & deployment settings:**
+    *   **Framework preset:** Astro
+    *   **Build command:** `npm run build`
+    *   **Build output directory:** `dist`
+4.  **Environment Variables for Frontend:**
+    *   `ASTRO_LISTMONK_API_URL`: Your Listmonk instance URL (e.g., `http://your-listmonk-domain.com:9000`). *This needs to be publicly accessible if Listmonk isn't on the same network/VPN as your scheduler.*
+    *   `ASTRO_LISTMONK_API_KEY`: Your Listmonk API key (format: `api_user:token`). This key needs read access to campaigns/archives.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+Cloudflare Pages will then build and deploy your Astro site.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## 🛠️ Local Development (Frontend)
 
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
+If you want to tweak the Astro frontend:
 
-## 🚀 Project Structure
+1.  Clone your fork.
+2.  `npm install`
+3.  Create a `.env` file in the project root:
+    ```env
+    ASTRO_LISTMONK_API_URL=http://your-listmonk-url:9000
+    ASTRO_LISTMONK_API_KEY=your-listmonk-api-key
+    ```
+4.  `npm run dev` (usually starts at `http://localhost:4321`).
 
-Inside of your Astro project, you'll see the following folders and files:
+## 🔧 Project Bits
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── layouts/
-│   │   └── Layout.astro
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+*   **`src/`**: Astro app code.
+    *   `pages/`: Site pages, including `[...dateSegment].astro` (main display).
+    *   `components/`: Reusable UI bits.
+*   **`scripts/`**: The newsletter scheduler for Railway. **See `scripts/README.md` for its specific setup.**
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+## 🤝 Contributing
 
-## 🧞 Commands
+If you find a bug or have an idea, feel free to open an issue or PR on the main repo: [gherget/hn-buddy](https://github.com/gherget/hn-buddy).
 
-All commands are run from the root of the project, from a terminal:
+---
 
-| Command           | Action                                       |
-|-------------------|--------------------------------------------- |
-| `npm install`     | Installs dependencies                        |
-| `npm run dev`     | Starts local dev server at `localhost:4321`  |
-| `npm run build`   | Build your production site to `./dist/`      |
-| `npm run preview` | Preview your build locally, before deploying |
-| `npm run astro -- --help` | Get help using the Astro CLI         |
-
-## Listmonk Public Archive
-
-The HN Buddy newsletter is automatically published to Listmonk's public archive, creating a browsable collection of past newsletters.
-
-### Accessing the Archive
-
-To view the public archive:
-
-1. Go to your Listmonk instance's web interface
-2. Navigate to the public pages (typically at `/public` or `/archive`)
-3. Browse past newsletter issues by date
-
-### Configuration
-
-Public archiving is enabled by default in the newsletter generation code. The following metadata is included:
-
-- **Title**: The newsletter subject line
-- **Description**: Brief description including the date
-- **Tags**: "daily-digest", "hacker-news", and the date
-
-To modify archive settings, edit `lib/newsletter.ts` and adjust the `archive` parameter in the campaign creation payload.
-
-## Contributing
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Happy Hacking!
