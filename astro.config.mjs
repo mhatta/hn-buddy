@@ -5,7 +5,7 @@ import cloudflare from '@astrojs/cloudflare';
 // https://astro.build/config
 export default defineConfig({
   // Site configuration
-  site: 'https://hn-buddy.vercel.app',
+  site: 'https://hn-buddy.com/',
   
   // Output mode for server-side rendering
   output: 'server',
@@ -23,14 +23,6 @@ export default defineConfig({
   build: {
     // Astro asset settings
     assets: '_astro',
-    assetsPrefix: '/static',
-  },
-  
-  // Markdown/MDX configuration for potential future use
-  markdown: {
-    syntaxHighlight: 'prism',
-    remarkPlugins: [],
-    rehypePlugins: [],
   },
   
   // Optimization settings
