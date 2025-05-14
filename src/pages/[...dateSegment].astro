@@ -139,7 +139,7 @@ if (dateParseError) {
       if (response.status === 401) displayError += " Please check your API credentials.";
       else if (response.status === 404) {
         campaignContent = `<p>No newsletter found for "${expectedCampaignName}". It might not have been generated yet or the date is invalid.</p>`;
-        Astro.response.headers.set('Cache-Control', 'public, max-age=3600, s-maxage=3600'); // Cache "not found" for a bit
+        Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=3600'); // Cache "not found" for a bit
         // This is not a server 'errorOccurred' in the same way as a 500, so don't set errorOccurred = true
       } else { // Other non-404 errors
         if (Astro.response.status !== 400 && Astro.response.status !== 404) Astro.response.status = 500;
@@ -154,7 +154,7 @@ if (dateParseError) {
           const campaign = responseData.data.results[0];
           if (campaign.body) {
             campaignContent = campaign.body;
-            Astro.response.headers.set('Cache-Control', 'public, max-age=86400, s-maxage=86400'); // Cache successful content
+            Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=86400'); // Cache successful content
           } else {
             campaignContent = `<p>The newsletter for "${expectedCampaignName}" was found, but its content is currently unavailable.</p>`;
             errorOccurred = true; // Content missing is an error state
@@ -162,7 +162,7 @@ if (dateParseError) {
           }
         } else { // Campaign not found, even with 200 OK (defensive)
           campaignContent = `<p>No newsletter found for "${expectedCampaignName}". It might not have been generated yet.</p>`;
-          Astro.response.headers.set('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+          Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=3600');
         }
     }
   } catch (error: unknown) {
@@ -181,11 +181,11 @@ if (errorOccurred) {
     } else if (campaignNameForDisplay === 'Configuration Error') { // Server config issue
         Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     } else { // Other server-side errors (500s from API fetch, etc.)
-        Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300'); // Short cache
+        Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=300'); // Short cache
     }
 } else if (campaignContent.includes("No newsletter found for") && !Astro.response.headers.has('Cache-Control')) {
     // Ensure "not found" from a successful API check (e.g. 200 OK but empty results) also gets cache header
-    Astro.response.headers.set('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+    Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=3600');
 }
 
 
