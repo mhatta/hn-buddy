@@ -6,6 +6,11 @@ import GitHubButton from '../components/GitHubButton.astro';
 // Determine targetDate based on Astro.params.dateSegment
 const { dateSegment } = Astro.params; // e.g., "2024-07-22" or undefined for root
 
+// --- Access Cloudflare runtime environment variables ---
+const { env: cloudflareEnv } = Astro.locals.runtime;
+const LISTMONK_API_URL = cloudflareEnv.ASTRO_LISTMONK_API_URL;
+const LISTMONK_API_CREDENTIALS = cloudflareEnv.ASTRO_LISTMONK_API_KEY;
+
 let currentContentDate: Date | null = null;
 let dateParseError = false;
 let isRootPath = false;
@@ -98,8 +103,8 @@ if (!dateParseError && currentContentDate) {
 export const prerender = false; // SSR for all paths handled by this route
 
 // --- Listmonk API Fetching ---
-const LISTMONK_API_URL = process.env.ASTRO_LISTMONK_API_URL;
-const LISTMONK_API_CREDENTIALS = process.env.ASTRO_LISTMONK_API_KEY;
+// const LISTMONK_API_URL = process.env.ASTRO_LISTMONK_API_URL; // Old way
+// const LISTMONK_API_CREDENTIALS = process.env.ASTRO_LISTMONK_API_KEY; // Old way
 
 let campaignContent = '<p>Loading newsletter...</p>';
 let campaignNameForDisplay = 'N/A';
