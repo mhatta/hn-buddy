@@ -4,7 +4,7 @@
 
 I built HN Buddy because I often found myself lost in Hacker News comments, worried I was missing out on cool new APIs or products. This is my solution to get a quick, digestible overview.
 
-It uses a simple scheduler to grab the top 10 Hacker News posts from the previous day and then feeds them to the Gemini 2.5 API (which is free for now) for a summary.
+It uses a simple scheduler to grab the top 10 Hacker News posts from the previous day and then feeds them to the Gemini 2.5 API (which is free for now) for a summary. My goal was to create summaries like I'd explain the key points to a buddy over the phone.
 
 [<img src="https://img.shields.io/badge/Follow%20me%20on%20X-%40gherget-1DA1F2?style=for-the-badge&logo=x" alt="Follow @gherget on X" />](https://x.com/gherget)
 
