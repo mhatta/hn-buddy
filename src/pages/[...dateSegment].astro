@@ -1,0 +1,437 @@
+---
+// Imports from both files
+import '../styles/global.css';
+import GitHubButton from '../components/GitHubButton.astro';
+
+// Determine targetDate based on Astro.params.dateSegment
+const { dateSegment } = Astro.params; // e.g., "2024-07-22" or undefined for root
+
+let currentContentDate: Date | null = null;
+let dateParseError = false;
+let isRootPath = false;
+
+const todayForReference = new Date(); // Use local 'today' for reference calculations if needed, but content date is UTC
+
+if (dateSegment === undefined || dateSegment === '' || dateSegment === null) { // Root path
+  isRootPath = true;
+  currentContentDate = new Date(); // Start with current local date
+  currentContentDate.setUTCDate(currentContentDate.getUTCDate() - 1); // Set to yesterday UTC
+  currentContentDate.setUTCHours(0, 0, 0, 0); // Ensure UTC midnight
+} else if (typeof dateSegment === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateSegment)) {
+  const parts = dateSegment.split('-').map(Number);
+  const parsedDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  if (isNaN(parsedDate.getTime())) {
+    dateParseError = true;
+    Astro.response.status = 400;
+  } else {
+    currentContentDate = parsedDate; // Already UTC midnight
+    // Check if requested date is in the future relative to "yesterday"
+    const utcToday = new Date();
+    utcToday.setUTCHours(0,0,0,0);
+    const utcYesterday = new Date(utcToday);
+    utcYesterday.setUTCDate(utcToday.getUTCDate() - 1);
+    if (currentContentDate.getTime() > utcYesterday.getTime()) {
+      // Requesting a date like "today" or "future" for a digest page
+      // This might mean "no content yet" or could be an invalid request depending on desired behavior
+      // For now, we'll let the API fetch handle it (likely no campaign found)
+      // but could set a specific error/message here.
+    }
+  }
+} else { // Invalid slug format (not YYYY-MM-DD)
+  dateParseError = true;
+  Astro.response.status = 404; // Not found for invalid slug pattern
+}
+
+// --- Date Setup for Navigation and Display ---
+let displayDateForNav = 'Invalid Date';
+let hnSearchApiDateStart = 0;
+let hnSearchApiDateEnd = 0;
+let prevDayUrl = '#';
+let nextDayUrl = '#';
+let isNextDayLatest = false;
+const latestDigestUrl = '/';
+
+if (!dateParseError && currentContentDate) {
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC'
+  };
+  displayDateForNav = currentContentDate.toLocaleDateString(undefined, dateOptions);
+
+  hnSearchApiDateStart = Math.floor(new Date(currentContentDate).setUTCHours(0,0,0,0)/1000);
+  hnSearchApiDateEnd = Math.floor(new Date(currentContentDate).setUTCHours(23,59,59,999)/1000);
+
+  const prevContentDate = new Date(currentContentDate);
+  prevContentDate.setUTCDate(currentContentDate.getUTCDate() - 1);
+  prevDayUrl = `/${prevContentDate.getUTCFullYear()}-${String(prevContentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(prevContentDate.getUTCDate()).padStart(2, '0')}`;
+
+  const nextContentDate = new Date(currentContentDate);
+  nextContentDate.setUTCDate(currentContentDate.getUTCDate() + 1); // This is UTC midnight of next day
+
+  // Determine "yesterday" in UTC for comparison
+  const utcComparisonToday = new Date();
+  utcComparisonToday.setUTCHours(0,0,0,0);
+  const utcComparisonYesterday = new Date(utcComparisonToday);
+  utcComparisonYesterday.setUTCDate(utcComparisonToday.getUTCDate() - 1);
+
+
+  // If the *next day* from currentContentDate is later than or equal to *actual yesterday* (UTC),
+  // then the "next" button should point to the latest digest (root).
+  // OR, if currentContentDate *is* yesterday, nextContentDate is today.
+  // If nextContentDate (which is currentContentDate + 1 day) is >= utcComparisonYesterday,
+  // it means currentContentDate is either the day before yesterday, or yesterday itself.
+  // If nextContentDate is >= utcComparisonToday, means current day is yesterday or later
+  if (nextContentDate.getTime() >= utcComparisonYesterday.getTime()) {
+    nextDayUrl = '/';
+    isNextDayLatest = true;
+  } else {
+    nextDayUrl = `/${nextContentDate.getUTCFullYear()}-${String(nextContentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(nextContentDate.getUTCDate()).padStart(2, '0')}`;
+  }
+} else if (dateParseError) {
+  // Values already initialized for error state
+  // displayDateForNav remains 'Invalid Date', URLs remain '#'
+}
+
+export const prerender = false; // SSR for all paths handled by this route
+
+// --- Listmonk API Fetching ---
+const LISTMONK_API_URL = import.meta.env.ASTRO_LISTMONK_API_URL;
+const LISTMONK_API_CREDENTIALS = import.meta.env.ASTRO_LISTMONK_API_KEY;
+
+let campaignContent = '<p>Loading newsletter...</p>';
+let campaignNameForDisplay = 'N/A';
+let errorOccurred = dateParseError;
+
+if (dateParseError) {
+  campaignContent = `<p><strong>Error:</strong> The requested date is invalid. Please use YYYY-MM-DD format or visit the home page for the latest digest.</p>`;
+  campaignNameForDisplay = 'Invalid Date';
+  // Astro.response.status already set
+} else if (!LISTMONK_API_URL || !LISTMONK_API_CREDENTIALS) {
+  console.error("Listmonk API URL or Credentials not set in .env. Ensure ASTRO_LISTMONK_API_URL and ASTRO_LISTMONK_API_KEY are defined.");
+  campaignContent = '<p><strong>Configuration Error:</strong> Listmonk API URL or Credentials are not set. Please check server .env configuration.</p>';
+  campaignNameForDisplay = 'Configuration Error';
+  errorOccurred = true;
+  if (Astro.response.status !== 400 && Astro.response.status !== 404) Astro.response.status = 500;
+} else if (currentContentDate) { // Proceed only if date is valid and config is present
+  try {
+    const formattedDateCheck = currentContentDate.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+    });
+    const expectedCampaignName = `HN Buddy Daily Digest - ${formattedDateCheck}`;
+    campaignNameForDisplay = expectedCampaignName;
+
+    const encodedCredentials = btoa(LISTMONK_API_CREDENTIALS);
+    const listmonkCampaignsUrl = `${LISTMONK_API_URL}/api/campaigns`;
+    const params = new URLSearchParams({ query: expectedCampaignName, page: '1', per_page: '1' });
+    const checkUrl = `${listmonkCampaignsUrl}?${params.toString()}`;
+
+    const response = await fetch(checkUrl, {
+      method: 'GET', headers: { 'Authorization': `Basic ${encodedCredentials}` }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to fetch campaign (Status ${response.status}) for ${expectedCampaignName}: ${errorText}`);
+      let displayError = `Listmonk API request failed for campaign "${expectedCampaignName}" with status ${response.status}.`;
+      if (response.status === 401) displayError += " Please check your API credentials.";
+      else if (response.status === 404) {
+        campaignContent = `<p>No newsletter found for "${expectedCampaignName}". It might not have been generated yet or the date is invalid.</p>`;
+        Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=3600'); // Cache "not found" for a bit
+        // This is not a server 'errorOccurred' in the same way as a 500, so don't set errorOccurred = true
+      } else { // Other non-404 errors
+        if (Astro.response.status !== 400 && Astro.response.status !== 404) Astro.response.status = 500;
+        throw new Error(displayError); // Fall into catch for general error handling
+      }
+      if (response.status !== 404) { // For non-404 errors that didn't throw (e.g. if logic changes)
+         throw new Error(displayError);
+      }
+    } else { // response.ok
+        const responseData = await response.json();
+        if (responseData.data?.results && responseData.data.results.length > 0) {
+          const campaign = responseData.data.results[0];
+          if (campaign.body) {
+            campaignContent = campaign.body;
+            Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=86400'); // Cache successful content
+          } else {
+            campaignContent = `<p>The newsletter for "${expectedCampaignName}" was found, but its content is currently unavailable.</p>`;
+            errorOccurred = true; // Content missing is an error state
+             if (Astro.response.status !== 400 && Astro.response.status !== 404) Astro.response.status = 500;
+          }
+        } else { // Campaign not found, even with 200 OK (defensive)
+          campaignContent = `<p>No newsletter found for "${expectedCampaignName}". It might not have been generated yet.</p>`;
+          Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=3600');
+        }
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    campaignContent = `<p><strong>Error loading newsletter:</strong> ${errorMessage}. Please check server logs.</p>`;
+    campaignNameForDisplay = 'Error';
+    errorOccurred = true;
+    if (Astro.response.status !== 400 && Astro.response.status !== 404) Astro.response.status = 500;
+  }
+}
+
+// Final Cache-Control settings based on error states
+if (errorOccurred) {
+    if (Astro.response.status === 400 || Astro.response.status === 404) { // Bad request or invalid date slug
+        Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else if (campaignNameForDisplay === 'Configuration Error') { // Server config issue
+        Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else { // Other server-side errors (500s from API fetch, etc.)
+        Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=300'); // Short cache
+    }
+} else if (campaignContent.includes("No newsletter found for") && !Astro.response.headers.has('Cache-Control')) {
+    // Ensure "not found" from a successful API check (e.g. 200 OK but empty results) also gets cache header
+    Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=3600');
+}
+
+
+// --- Page Title Logic ---
+let pageTitleSuffix;
+if (dateParseError) {
+  pageTitleSuffix = "Invalid Date";
+} else if (campaignNameForDisplay === 'Configuration Error') {
+  pageTitleSuffix = "Configuration Error";
+} else if (campaignNameForDisplay === 'Error') {
+  pageTitleSuffix = "Error Loading Digest";
+} else if (campaignNameForDisplay && campaignNameForDisplay.startsWith('HN Buddy Daily Digest - ')) {
+  pageTitleSuffix = campaignNameForDisplay.replace('HN Buddy Daily Digest - ', '');
+} else { // Fallback if campaign name is unusual but no specific error occurred
+  pageTitleSuffix = displayDateForNav;
+}
+const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={`HN Buddy - A daily digest of top Hacker News posts and comments for ${pageTitleSuffix}`} />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <header>
+      <div class="container header-container">
+        <div class="header-content">
+        <h1>HN Buddy</h1>
+        <p>Daily digest of top Hacker News posts and comments</p>
+        </div>
+        <div class="header-actions">
+          <GitHubButton repo="herget/hn-buddy" />
+        </div>
+      </div>
+    </header>
+    
+    <nav class="day-nav container">
+      <div class="day-nav-inner">
+        <a href={prevDayUrl} class={`nav-btn prev-day ${prevDayUrl === '#' || dateParseError ? 'disabled' : ''}`}>
+          <span class="nav-arrow">←</span> Previous Day
+        </a>
+        <div class="current-day">
+          <h2>{displayDateForNav}</h2>
+          <div class="day-meta">
+            <a href={latestDigestUrl} class="today-link">Latest Digest</a>
+            {currentContentDate && !dateParseError && (
+              <>
+                |
+                <a href={`https://hn.algolia.com/?dateRange=custom&dateStart=${hnSearchApiDateStart}&dateEnd=${hnSearchApiDateEnd}&type=story&query=&sort=byPopularity`} 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="api-link">
+                  View in HN Search
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+        <a href={nextDayUrl} class={`nav-btn next-day ${(nextDayUrl === '#' || dateParseError) ? 'disabled' : ''}`}>
+          {isNextDayLatest ? 'View Latest' : 'Next Day'} <span class="nav-arrow">→</span>
+        </a>
+      </div>
+    </nav>
+    
+    <main class="container">
+      {(errorOccurred || dateParseError || campaignContent.includes("No newsletter found for") || campaignContent.includes("Configuration Error:") || campaignContent.includes("Error loading newsletter:")) ? (
+        <div class={(errorOccurred || dateParseError || campaignNameForDisplay === 'Configuration Error' || campaignNameForDisplay === 'Error') ? "status-message error" : "status-message info"} set:html={campaignContent} />
+      ) : (
+        <div class="newsletter-container" set:html={campaignContent} />
+      )}
+    </main>
+    
+    <footer>
+      <div class="container">
+        <p>
+          Built with <a href="https://astro.build" target="_blank" rel="noopener noreferrer">Astro</a> | 
+          Data from <a href="https://news.ycombinator.com" target="_blank" rel="noopener noreferrer">Hacker News</a> via 
+          <a href="https://hn.algolia.com/api" target="_blank" rel="noopener noreferrer">HN Search API</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<!-- Styles from index.astro, assuming global.css provides base styling -->
+<style>
+  .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .header-content {
+    flex: 1;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .status-message {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 1.05em;
+  }
+  .status-message.error {
+      background-color: #ffebee; /* Light red */
+      color: #c62828; /* Dark red */
+      border: 1px solid #e57373; /* Softer red border */
+  }
+  .status-message.info {
+      background-color: #e3f2fd; /* Light blue */
+      color: #1565c0; /* Dark blue */
+      border: 1px solid #64b5f6; /* Softer blue border */
+  }
+  
+  .day-nav {
+    margin-bottom: 2rem;
+    margin-top: -1rem; 
+  }
+  
+  .day-nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .current-day {
+    text-align: center;
+  }
+  
+  .current-day h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .day-meta {
+    font-size: 0.875rem;
+    color: #666;
+    margin-top: 0.25rem;
+  }
+  
+  .today-link, .api-link {
+    color: #0366d6;
+    text-decoration: none;
+    margin: 0 0.25rem;
+  }
+  
+  .api-link {
+    color: #9c9c9c; 
+  }
+  
+  .today-link:hover, .api-link:hover {
+    text-decoration: underline;
+  }
+  
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    background-color: #f5f5f5;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    color: #333;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: background-color 0.2s;
+  }
+  
+  .nav-btn:hover {
+    background-color: #e5e5e5;
+  }
+  
+  .nav-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none; 
+  }
+  
+  .nav-arrow {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  
+  .prev-day .nav-arrow {
+    margin-right: 0.5rem;
+  }
+  
+  .next-day .nav-arrow {
+    margin-left: 0.5rem;
+  }
+
+  .newsletter-container {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 25px;
+    margin-top: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  .newsletter-container .header { text-align: center; margin-bottom: 30px; }
+  .newsletter-container .header h1 { color: #f60; font-size: 1.8em !important; } 
+  .newsletter-container .summary { background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+  .newsletter-container h2 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; font-size: 1.5em; }
+  .newsletter-container .post { margin-bottom: 30px; padding: 20px; border: 1px solid #eee; border-radius: 4px; }
+  .newsletter-container .post-title { margin: 0 0 10px 0; font-size: 1.4em; }
+  .newsletter-container .post-title a { color: #000; text-decoration: none; }
+  .newsletter-container .post-title a:hover { text-decoration: underline; }
+  .newsletter-container .post-title span { font-size: 0.8em; color: #666; margin-left: 5px; }
+  .newsletter-container .post-meta { font-size: 0.9em; color: #666; margin-bottom: 15px; }
+  .newsletter-container .post-meta a { color: #007bff; text-decoration: none; }
+  .newsletter-container .post-meta a:hover { text-decoration: underline; }
+  .newsletter-container .post-meta .points { color: #f60; font-weight: 600; }
+  
+  @media (max-width: 640px) {
+    .header-container {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .header-actions {
+      width: 100%;
+    }
+    
+    .day-nav-inner {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .nav-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style> 
