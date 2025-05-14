@@ -36,10 +36,7 @@ It uses a simple scheduler to grab the top 10 Hacker News posts from the previou
 
 ### 1. Set up Listmonk
 
-You'll need a Listmonk instance. You can host it yourself or use a managed service. For a quick start, I recommend deploying it on Railway:
-
-[![Deploy to Railway](https://railway.app/button.svg)](https://railway.app/template/listmonk)
-*(This will cost around $1.20 USD per month on Railway based on my usage.)*
+You'll need a Listmonk instance. You can host it yourself or use a managed service. For a quick start, I recommend deploying it on [Railway](https://railway.app/template/listmonk). (This will cost around $1.20 USD per month on Railway based on my usage.)
 
 Alternatively, follow the [official Listmonk documentation](https://listmonk.app/docs/installation/) for other installation methods.
 
@@ -60,11 +57,9 @@ That README covers:
 
 ### 3. Deploy the Astro Frontend to Cloudflare Pages
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fgherget%2Fhn-buddy)
-
 The Astro web app (in the root) shows the newsletters.
 
-1.  **Click the "Deploy to Cloudflare" button above** or go to your Cloudflare dashboard.
+1.  Go to your Cloudflare dashboard.
 2.  Connect your forked GitHub repository.
 3.  **Build & deployment settings:**
     *   **Framework preset:** Astro
