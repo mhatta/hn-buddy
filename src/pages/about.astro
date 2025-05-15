@@ -1,0 +1,130 @@
+---
+import '../styles/global.css';
+import GitHubButton from '../components/GitHubButton.astro';
+import SignupForm from '../components/SignupForm.astro';
+
+const pageTitle = "HN Buddy - About";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content="About HN Buddy and why it was created." />
+    <title>{pageTitle}</title>
+    <style>
+      .story-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        line-height: 1.7;
+      }
+      .story-container h1 {
+        color: #333;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+      .story-container p {
+        margin-bottom: 1rem;
+        color: #555;
+      }
+      .story-container a {
+        color: #f60;
+        text-decoration: none;
+      }
+      .story-container a:hover {
+        text-decoration: underline;
+      }
+      .back-link-container {
+        margin-bottom: 2rem;
+        text-align: center; 
+      }
+      .back-link {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #f5f5f5;
+        color: #333;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+      .back-link:hover {
+        background-color: #e5e5e5;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container header-container">
+        <div class="header-content">
+          <a href="/" style="text-decoration: none; color: inherit;"><h1>HN Buddy</h1></a>
+          <p>Daily digest of top Hacker News posts and comments</p>
+        </div>
+        <div class="header-actions">
+          <GitHubButton repo="herget/hn-buddy" />
+        </div>
+      </div>
+    </header>
+
+    <div class="container back-link-container">
+        <a href="/" class="back-link">← Back to Latest Digest</a>
+    </div>
+
+    <main class="container">
+      <div class="story-container">
+        <h1>About HN Buddy</h1>
+        <p>
+          Welcome to HN Buddy! This project was born out of a love for Hacker News and a desire to keep up with its insightful discussions without getting overwhelmed.
+        </p>
+        <p>
+          The core idea is simple: provide a daily, easy-to-digest summary of the top stories and their key comments. Whether you're short on time or just want a curated glance at what the tech world is talking about, HN Buddy aims to be your helpful companion.
+        </p>
+        <p>
+          It started as a personal tool to scratch an itch – I often found myself diving deep into comment threads, wondering if I was missing out on other interesting developments. By automating the process of gathering and summarizing, I could get a quick overview and decide where to focus my attention.
+        </p>
+        <p>
+          This project is open-source and self-hostable. You can find the code on <a href="https://github.com/herget/hn-buddy" target="_blank" rel="noopener noreferrer">GitHub</a>. 
+          It leverages the power of AI (currently Gemini 2.5) to generate summaries and is built with modern web technologies like Astro for the frontend and Listmonk for newsletter management.
+        </p>
+        <p>
+          My hope is that HN Buddy is as useful to you as it is to me. Feel free to explore, fork the code, or even contribute!
+        </p>
+        <p>
+           <em>- <a href="https://gherget.com" target="_blank">Gabor</a></em>
+        </p>
+      </div>
+    </main>
+
+    <div class="container">
+      <SignupForm />
+    </div>
+
+    <footer>
+      <div class="container">
+        <p>
+          Built with <a href="https://astro.build" target="_blank" rel="noopener noreferrer">Astro</a> | 
+          Data from <a href="https://news.ycombinator.com" target="_blank" rel="noopener noreferrer">Hacker News</a> via 
+          <a href="https://hn.algolia.com/api" target="_blank" rel="noopener noreferrer">HN Search API</a>
+        </p>
+        <p><a href="/" class="footer-link">Home</a> | <a href="/about" class="footer-link">About</a></p>
+      </div>
+    </footer>
+    <style>
+      .footer-link {
+        color: #666;
+        text-decoration: none;
+        margin: 0 0.5rem;
+      }
+      .footer-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </body>
+</html> 

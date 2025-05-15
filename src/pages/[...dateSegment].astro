@@ -270,6 +270,32 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={`HN Buddy - A daily digest of top Hacker News posts and comments for ${pageTitleSuffix}`} />
     <title>{pageTitle}</title>
+    <style>
+      /* Add styles for the new header link */
+      .header-story-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background-color: #f5f5f5;
+        color: #333;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        line-height: 1;
+        transition: background-color 0.2s;
+      }
+      .header-story-link:hover {
+        background-color: #e5e5e5;
+      }
+      .footer-link {
+        color: #666;
+        text-decoration: none;
+        margin: 0 0.5rem;
+      }
+      .footer-link:hover {
+        text-decoration: underline;
+      }
+    </style>
   </head>
   <body>
     <header>
@@ -279,6 +305,7 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
         <p>Daily digest of top Hacker News posts and comments</p>
         </div>
         <div class="header-actions">
+          <a href="/about" class="header-story-link">About</a>
           <GitHubButton repo="herget/hn-buddy" />
         </div>
       </div>
@@ -330,6 +357,9 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
           Built with <a href="https://astro.build" target="_blank" rel="noopener noreferrer">Astro</a> | 
           Data from <a href="https://news.ycombinator.com" target="_blank" rel="noopener noreferrer">Hacker News</a> via 
           <a href="https://hn.algolia.com/api" target="_blank" rel="noopener noreferrer">HN Search API</a>
+        </p>
+        <p>
+          <a href="/" class="footer-link">Home</a> | <a href="/about" class="footer-link">About</a>
         </p>
       </div>
     </footer>
