@@ -1,0 +1,141 @@
+<div id="signup-form-container">
+  <h3>Subscribe to the HN Buddy Daily Digest</h3>
+  <form id="subscribeForm">
+    <div class="form-group">
+      <label for="email">Email Address:</label>
+      <input type="email" id="email" name="email" required />
+    </div>
+    <button type="submit" id="submitButton">Subscribe</button>
+    <p class="privacy-note">
+      Your email will only be used for the HN Buddy Daily Digest. We will send you the content you see on this site. 
+      Your email will not be sold or shared with anyone else.
+    </p>
+  </form>
+  <div id="formMessage" role="alert"></div>
+</div>
+
+<script>
+  interface SubscribeResponse {
+    message: string;
+    success: boolean;
+    errorDetail?: any;
+  }
+
+  const form = document.getElementById('subscribeForm') as HTMLFormElement;
+  const formMessage = document.getElementById('formMessage') as HTMLDivElement;
+  const submitButton = document.getElementById('submitButton') as HTMLButtonElement;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    formMessage.textContent = '';
+    formMessage.className = ''; // Reset classes
+    submitButton.disabled = true;
+    submitButton.textContent = 'Subscribing...';
+
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json() as SubscribeResponse;
+
+      if (response.ok && result.success) {
+        formMessage.textContent = result.message || 'Successfully subscribed!';
+        formMessage.className = 'success-message';
+        form.reset();
+      } else {
+        formMessage.textContent = result.message || 'Subscription failed. Please try again.';
+        formMessage.className = 'error-message';
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      formMessage.textContent = 'An unexpected error occurred. Please try again later.';
+      formMessage.className = 'error-message';
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Subscribe';
+    }
+  });
+</script>
+
+<style>
+  #signup-form-container {
+    background-color: #f9f9f9;
+    padding: 25px;
+    border-radius: 8px;
+    margin: 2rem auto;
+    max-width: 500px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    text-align: center; /* Center align the h3 and form contents */
+  }
+  #signup-form-container h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-size: 1.5em;
+  }
+  .form-group {
+    margin-bottom: 1rem;
+    text-align: left; /* Align label and input to the left */
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-weight: 600;
+  }
+  .form-group input[type="email"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1rem;
+  }
+  #signup-form-container button[type="submit"] {
+    background-color: #f60; /* Orange like Hacker News */
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%; /* Make button full width */
+    margin-top: 0.5rem; /* Add some space above the button */
+  }
+  #signup-form-container button[type="submit"]:hover {
+    background-color: #e05a00;
+  }
+  #signup-form-container button[type="submit"]:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  .privacy-note {
+    font-size: 0.875rem;
+    color: #777;
+    margin-top: 1.5rem;
+    line-height: 1.4;
+    text-align: left; /* Align privacy note to the left */
+  }
+  #formMessage {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .success-message {
+    background-color: #e6fffa; /* Light teal */
+    color: #00796b; /* Dark teal */
+    border: 1px solid #b2dfdb; /* Softer teal border */
+  }
+  .error-message {
+    background-color: #ffebee; /* Light red */
+    color: #c62828; /* Dark red */
+    border: 1px solid #e57373; /* Softer red border */
+  }
+</style> 

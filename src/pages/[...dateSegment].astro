@@ -2,6 +2,7 @@
 // Imports from both files
 import '../styles/global.css';
 import GitHubButton from '../components/GitHubButton.astro';
+import SignupForm from '../components/SignupForm.astro';
 
 // Determine targetDate based on Astro.params.dateSegment
 const { dateSegment } = Astro.params; // e.g., "2024-07-22" or undefined for root
@@ -310,6 +311,10 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
         </a>
       </div>
     </nav>
+    
+    <div class="container">
+      <SignupForm />
+    </div>
     
     <main class="container">
       {(errorOccurred || dateParseError || campaignContent.includes("No newsletter found for") || campaignContent.includes("Configuration Error:") || campaignContent.includes("Error loading newsletter:")) ? (
