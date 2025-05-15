@@ -283,6 +283,10 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
         </div>
       </div>
     </header>
+
+    <div class="container">
+      <SignupForm />
+    </div>
     
     <nav class="day-nav container">
       <div class="day-nav-inner">
@@ -311,10 +315,6 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
         </a>
       </div>
     </nav>
-    
-    <div class="container">
-      <SignupForm />
-    </div>
     
     <main class="container">
       {(errorOccurred || dateParseError || campaignContent.includes("No newsletter found for") || campaignContent.includes("Configuration Error:") || campaignContent.includes("Error loading newsletter:")) ? (

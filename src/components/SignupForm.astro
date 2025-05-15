@@ -126,13 +126,14 @@ if (!turnstileSiteKey) {
 
 <style>
   #signup-form-container {
-    background-color: #f9f9f9;
+    background-color: #fff;
     padding: 25px;
     border-radius: 8px;
-    margin: 2rem auto;
-    max-width: 500px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    text-align: center; /* Center align the h3 and form contents */
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid #ddd;
+    text-align: center;
   }
   #signup-form-container h3 {
     margin-top: 0;
@@ -142,7 +143,7 @@ if (!turnstileSiteKey) {
   }
   .form-group {
     margin-bottom: 1rem;
-    text-align: left; /* Align label and input to the left */
+    text-align: left;
   }
   .form-group label {
     display: block;
@@ -158,15 +159,14 @@ if (!turnstileSiteKey) {
     box-sizing: border-box;
     font-size: 1rem;
   }
-  /* Add some margin for the Turnstile widget */
   .cf-turnstile {
     margin-top: 1rem;
     margin-bottom: 1rem;
-    display: flex; /* Helps in centering if widget itself isn't block */
-    justify-content: center; /* Center the widget */
+    display: flex;
+    justify-content: center;
   }
   #signup-form-container button[type="submit"] {
-    background-color: #f60; /* Orange like Hacker News */
+    background-color: #f60;
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -175,8 +175,8 @@ if (!turnstileSiteKey) {
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
-    width: 100%; /* Make button full width */
-    margin-top: 0.5rem; /* Add some space above the button */
+    width: 100%;
+    margin-top: 0.5rem;
   }
   #signup-form-container button[type="submit"]:hover {
     background-color: #e05a00;
@@ -190,7 +190,7 @@ if (!turnstileSiteKey) {
     color: #777;
     margin-top: 1.5rem;
     line-height: 1.4;
-    text-align: left; /* Align privacy note to the left */
+    text-align: left;
   }
   #formMessage {
     margin-top: 1rem;
@@ -199,13 +199,13 @@ if (!turnstileSiteKey) {
     font-weight: 500;
   }
   .success-message {
-    background-color: #e6fffa; /* Light teal */
-    color: #00796b; /* Dark teal */
-    border: 1px solid #b2dfdb; /* Softer teal border */
+    background-color: #e6fffa;
+    color: #00796b;
+    border: 1px solid #b2dfdb;
   }
   .error-message {
-    background-color: #ffebee; /* Light red */
-    color: #c62828; /* Dark red */
-    border: 1px solid #e57373; /* Softer red border */
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid #e57373;
   }
 </style> 
