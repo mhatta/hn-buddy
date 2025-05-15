@@ -76,13 +76,17 @@ Cloudflare Pages will then build and deploy your Astro site.
 If you want to tweak the Astro frontend:
 
 1.  Clone your fork.
-2.  `npm install`
-3.  Create a `.env` file in the project root:
-    ```env
-    ASTRO_LISTMONK_API_URL=http://your-listmonk-url:9000
-    ASTRO_LISTMONK_API_KEY=your-listmonk-api-key
+2.  Ensure you have Node.js and a package manager (npm, pnpm, or yarn) installed.
+3.  `npm install` (or `pnpm install` / `yarn install`) to install dependencies, including `wrangler` as a dev dependency.
+4.  Create a `.dev.vars` file in the project root. This file is used by the `@astrojs/cloudflare` adapter to simulate the Cloudflare environment locally.
+    ```.dev.vars
+    ASTRO_LISTMONK_API_URL="http://your-listmonk-url:9000"
+    ASTRO_LISTMONK_API_KEY="your-listmonk-api-key"
     ```
-4.  `npm run dev` (usually starts at `http://localhost:4321`).
+    Replace the placeholder values with your actual Listmonk URL and API key.
+5.  Run `npm run dev` (or `pnpm dev` / `yarn dev`). This command (as configured in `package.json`) will first run `wrangler types` to generate type definitions for your Cloudflare environment and then start the Astro development server, usually at `http://localhost:4321`.
+
+    The environment variables from `.dev.vars` will be accessible in your server-side Astro code via `Astro.locals.runtime.env`. Make sure `.dev.vars` is included in your `.gitignore` file.
 
 ## 🔧 Project Bits
 
