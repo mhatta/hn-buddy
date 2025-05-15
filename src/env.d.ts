@@ -4,6 +4,7 @@
 interface CloudflareEnv {
   ASTRO_LISTMONK_API_URL: string;
   ASTRO_LISTMONK_API_KEY: string;
+  ASTRO_TURNSTILE_SECRET_KEY: string;
   // Add other Cloudflare bindings (like KV, D1, etc.) or environment variables here as needed
   // EXAMPLE_KV_NAMESPACE: KVNamespace;
   // EXAMPLE_DO: DurableObjectNamespace;

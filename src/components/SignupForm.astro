@@ -1,3 +1,16 @@
+---
+// Read the site key from environment variables
+// For local dev, this will come from .dev.vars
+// For production, this will come from Cloudflare Pages environment variables
+const { env: cloudflareEnv } = Astro.locals.runtime;
+const turnstileSiteKey = cloudflareEnv.PUBLIC_TURNSTILE_SITE_KEY;
+
+if (!turnstileSiteKey) {
+  console.warn("PUBLIC_TURNSTILE_SITE_KEY is not set. Turnstile widget may not load correctly.");
+}
+---
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
 <div id="signup-form-container">
   <h3>Subscribe to the HN Buddy Daily Digest</h3>
   <form id="subscribeForm">
@@ -5,16 +18,51 @@
       <label for="email">Email Address:</label>
       <input type="email" id="email" name="email" required />
     </div>
+    
+    <div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-callback="onTurnstileSuccess"></div>
+
     <button type="submit" id="submitButton">Subscribe</button>
     <p class="privacy-note">
-      Your email will only be used for the HN Buddy Daily Digest. We will send you the content you see on this site. 
-      Your email will not be sold or shared with anyone else.
+      Your email will only be used for the HN Buddy Daily Digest. I will not share it with anyone.
     </p>
   </form>
   <div id="formMessage" role="alert"></div>
 </div>
 
 <script>
+  // Define Turnstile types for better TypeScript support
+  declare global {
+    interface Window {
+      turnstile?: {
+        render: (container: string | HTMLElement, params: TurnstileOptions) => string | undefined;
+        reset: (widgetId?: string) => void;
+        getResponse: (widgetId?: string) => string | undefined;
+        remove: (widgetId?: string) => void;
+      };
+      onTurnstileSuccess?: (token: string) => void;
+    }
+  }
+
+  interface TurnstileOptions {
+    sitekey: string;
+    action?: string;
+    cData?: string;
+    callback?: (token: string) => void;
+    'error-callback'?: () => void;
+    'expired-callback'?: () => void;
+    theme?: 'light' | 'dark' | 'auto';
+    tabindex?: number;
+  }
+
+  let turnstileToken: string | null = null; // Store the token
+
+  function onTurnstileSuccessCallback(token: string) {
+    turnstileToken = token;
+  }
+  // Expose the callback to global scope for Turnstile
+  window.onTurnstileSuccess = onTurnstileSuccessCallback;
+
+
   interface SubscribeResponse {
     message: string;
     success: boolean;
@@ -28,11 +76,22 @@
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     formMessage.textContent = '';
-    formMessage.className = ''; // Reset classes
+    formMessage.className = ''; 
+
+    const turnstileResponseFromForm = (form.elements.namedItem('cf-turnstile-response') as HTMLInputElement)?.value;
+
+    if (!turnstileResponseFromForm) {
+      formMessage.textContent = 'Please complete the security check.';
+      formMessage.className = 'error-message';
+      if (window.turnstile) window.turnstile.reset();
+      return;
+    }
+
     submitButton.disabled = true;
     submitButton.textContent = 'Subscribing...';
 
     const formData = new FormData(form);
+    // formData already includes 'cf-turnstile-response' from the widget
 
     try {
       const response = await fetch('/api/subscribe', {
@@ -57,6 +116,10 @@
     } finally {
       submitButton.disabled = false;
       submitButton.textContent = 'Subscribe';
+      if (window.turnstile) {
+        window.turnstile.reset();
+      }
+      turnstileToken = null; 
     }
   });
 </script>
@@ -94,6 +157,13 @@
     border-radius: 4px;
     box-sizing: border-box;
     font-size: 1rem;
+  }
+  /* Add some margin for the Turnstile widget */
+  .cf-turnstile {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    display: flex; /* Helps in centering if widget itself isn't block */
+    justify-content: center; /* Center the widget */
   }
   #signup-form-container button[type="submit"] {
     background-color: #f60; /* Orange like Hacker News */
