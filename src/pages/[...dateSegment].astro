@@ -11,6 +11,48 @@ const { env: cloudflareEnv } = Astro.locals.runtime;
 const LISTMONK_API_URL = cloudflareEnv.ASTRO_LISTMONK_API_URL;
 const LISTMONK_API_CREDENTIALS = cloudflareEnv.ASTRO_LISTMONK_API_KEY;
 
+// --- Type Definitions for Listmonk API Response ---
+interface Campaign {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  subject: string;
+  from_email: string;
+  list_ids: number[];
+  template_id: number;
+  content_type: 'html' | 'markdown' | 'plain';
+  body: string; // This is the HTML content
+  altbody: string; // This is the plain text content
+  send_at: string;
+  status: 'draft' | 'scheduled' | 'running' | 'paused' | 'finished' | 'cancelled';
+  type: 'regular' | 'optin';
+  tags: string[];
+  messenger: string;
+  meta: Record<string, any>;
+  archive: boolean;
+  archive_meta: Record<string, any>;
+  views: number;
+  clicks: number;
+  bounces: number;
+  content_updated_at: string;
+  started_at: string | null;
+  to_send: number;
+  sent: number;
+  progress: number;
+}
+
+interface ListmonkCampaignsData {
+  results?: Campaign[];
+  total?: number;
+  per_page?: number;
+  page?: number;
+}
+
+interface ListmonkCampaignsResponse {
+  data?: ListmonkCampaignsData;
+}
+
 let currentContentDate: Date | null = null;
 let dateParseError = false;
 let isRootPath = false;
@@ -19,9 +61,18 @@ const todayForReference = new Date(); // Use local 'today' for reference calcula
 
 if (dateSegment === undefined || dateSegment === '' || dateSegment === null) { // Root path
   isRootPath = true;
-  currentContentDate = new Date(); // Start with current local date
-  currentContentDate.setUTCDate(currentContentDate.getUTCDate() - 1); // Set to yesterday UTC
-  currentContentDate.setUTCHours(0, 0, 0, 0); // Ensure UTC midnight
+  const nowUtc = new Date();
+  // Initialize currentContentDate to today UTC midnight
+  currentContentDate = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate()));
+  
+  if (nowUtc.getUTCHours() < 8) {
+    // If before 8:00 AM UTC, set to two days ago UTC
+    currentContentDate.setUTCDate(currentContentDate.getUTCDate() - 2);
+  } else {
+    // Otherwise, set to yesterday UTC
+    currentContentDate.setUTCDate(currentContentDate.getUTCDate() - 1);
+  }
+  // currentContentDate is already at UTC midnight
 } else if (typeof dateSegment === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateSegment)) {
   const parts = dateSegment.split('-').map(Number);
   const parsedDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
@@ -154,7 +205,7 @@ if (dateParseError) {
          throw new Error(displayError);
       }
     } else { // response.ok
-        const responseData = await response.json();
+        const responseData = await response.json() as ListmonkCampaignsResponse;
         if (responseData.data?.results && responseData.data.results.length > 0) {
           const campaign = responseData.data.results[0];
           if (campaign.body) {
