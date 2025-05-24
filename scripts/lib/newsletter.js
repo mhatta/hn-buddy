@@ -138,7 +138,7 @@ ${JSON.stringify(postsData, null, 2)}
 Make sure it sounds like a real, quick chat. Point out anything useful or cool.
 
 Format the whole thing in HTML: Use <h2> for section headings, <p> for paragraphs, <strong> for emphasis, and <a> tags for links.
-NO MARKDOWN.   The final output should be in Japanese.
+NO MARKDOWN.   The final output (including section headings) should be in Japanese.
 `;
 
     // Using v1beta endpoint for preview model
@@ -212,7 +212,7 @@ NO MARKDOWN.   The final output should be in Japanese.
 // Generate HTML for the newsletter
 export function generateNewsletterHTML(data, aiSummary) {
   const date = new Date(data.dayStartISOString);
-  const formattedDate = date.toLocaleDateString('en-US', { 
+  const formattedDate = date.toLocaleDateString('ja-JP', { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
@@ -222,7 +222,7 @@ export function generateNewsletterHTML(data, aiSummary) {
   // Start with the header, then the content fragment
   let html = `
       <div class="header" style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #f60;">HN 本日のまとめ</h1>
+        <h1 style="color: #f60;">HN 今日のまとめ</h1>
         <p>${formattedDate}</p>
       </div>
       
@@ -230,7 +230,7 @@ export function generateNewsletterHTML(data, aiSummary) {
         ${aiSummary}
       </div>
       
-      <h2 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">All Stories from Today</h2>
+      <h2 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">今日の全てのストーリー</h2>
   `;
 
   data.posts.forEach(({ post }) => {
@@ -278,7 +278,7 @@ export async function generateAndSendNewsletter() {
       month: 'long',
       day: 'numeric'
     });
-    const expectedCampaignName = `HN 本日のまとめ - ${formattedDateCheck}`;
+    const expectedCampaignName = `HN 今日のまとめ - ${formattedDateCheck}`;
     console.log(`Checking for existing campaign named: ${expectedCampaignName}`);
 
     // Check if this campaign already exists
