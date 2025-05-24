@@ -177,7 +177,7 @@ if (dateParseError) {
     const formattedDateCheck = currentContentDate.toLocaleDateString('ja-JP', {
       year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
     });
-    const expectedCampaignName = `HN Buddy Daily Digest - ${formattedDateCheck}`;
+    const expectedCampaignName = `HN 今日のまとめ - ${formattedDateCheck}`;
     campaignNameForDisplay = expectedCampaignName;
 
     const encodedCredentials = btoa(LISTMONK_API_CREDENTIALS);
@@ -268,7 +268,7 @@ const pageTitle = `HN まとめ - ${pageTitleSuffix}`;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={`HN まとめ - Hacker News のトップ投稿やコメントを毎日ダイジェスト ${pageTitleSuffix}`} />
+    <meta name="description" content={`HN 今日のまとめ - Hacker News のトップ投稿やコメントを毎日ダイジェスト ${pageTitleSuffix}`} />
     <title>{pageTitle}</title>
     <style>
       /* Add styles for the new header link */
@@ -301,7 +301,7 @@ const pageTitle = `HN まとめ - ${pageTitleSuffix}`;
     <header>
       <div class="container header-container">
         <div class="header-content">
-        <h1>HN まとめ</h1>
+        <h1>HN 今日のまとめ</h1>
         <p>Hacker News の人気投稿やコメントを毎日ダイジェスト</p>
         </div>
         <div class="header-actions">
@@ -311,19 +311,19 @@ const pageTitle = `HN まとめ - ${pageTitleSuffix}`;
       </div>
     </header>
 
-    <div class="container">
-      <SignupForm />
-    </div>
+//    <div class="container">
+//      <SignupForm />
+//    </div>
     
     <nav class="day-nav container">
       <div class="day-nav-inner">
         <a href={prevDayUrl} class={`nav-btn prev-day ${prevDayUrl === '#' || dateParseError ? 'disabled' : ''}`}>
-          <span class="nav-arrow">←</span> Previous Day
+          <span class="nav-arrow">←</span> 前日
         </a>
         <div class="current-day">
           <h2>{displayDateForNav}</h2>
           <div class="day-meta">
-            <a href={latestDigestUrl} class="today-link">Latest Digest</a>
+            <a href={latestDigestUrl} class="today-link">最新のまとめ</a>
             {currentContentDate && !dateParseError && (
               <>
                 |
