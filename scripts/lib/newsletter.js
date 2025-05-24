@@ -101,7 +101,7 @@ export async function generateSummaryWithGoogleAI(data) {
   }
 
   try {
-    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('en-US', {
+    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('ja-JP', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -222,7 +222,7 @@ export function generateNewsletterHTML(data, aiSummary) {
   // Start with the header, then the content fragment
   let html = `
       <div class="header" style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #f60;">HN Buddy Daily Digest</h1>
+        <h1 style="color: #f60;">HN 本日のまとめ</h1>
         <p>${formattedDate}</p>
       </div>
       
@@ -245,9 +245,9 @@ export function generateNewsletterHTML(data, aiSummary) {
           <span style="font-size: 0.8em; color: #666;">(${hostname})</span>
         </h2>
         <div class="post-meta" style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
-          <span class="points" style="color: #f60; font-weight: 600;">${post.points} points</span> by 
+          <span class="points" style="color: #f60; font-weight: 600;">${post.points} ポイント</span> by 
           <a href="https://news.ycombinator.com/user?id=${post.author}">${post.author}</a> | 
-          <a href="${hnPostUrl}">${post.num_comments} comments</a>
+          <a href="${hnPostUrl}">${post.num_comments} コメント</a>
         </div>
       </div>
     `;
@@ -273,12 +273,12 @@ export async function generateAndSendNewsletter() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStart = getStartOfDayUTC(yesterday);
-    const formattedDateCheck = yesterdayStart.toLocaleDateString('en-US', {
+    const formattedDateCheck = yesterdayStart.toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-    const expectedCampaignName = `HN Buddy Daily Digest - ${formattedDateCheck}`;
+    const expectedCampaignName = `HN 本日のまとめ - ${formattedDateCheck}`;
     console.log(`Checking for existing campaign named: ${expectedCampaignName}`);
 
     // Check if this campaign already exists
@@ -352,7 +352,7 @@ export async function generateAndSendNewsletter() {
     // Generate HTML content
     const htmlContentFragment = generateNewsletterHTML(data, aiSummary);
     
-    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('en-US', {
+    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
