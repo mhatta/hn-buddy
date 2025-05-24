@@ -306,14 +306,14 @@ const pageTitle = `HN まとめ - ${pageTitleSuffix}`;
         </div>
         <div class="header-actions">
           <a href="/about" class="header-story-link">このサイトについて</a>
-          <GitHubButton repo="mhattat/hn-buddy" />
+          <GitHubButton repo="mhatta/hn-buddy" />
         </div>
       </div>
     </header>
 
-//    <div class="container">
-//      <SignupForm />
-//    </div>
+    <div class="container">
+      <SignupForm />
+    </div>
     
     <nav class="day-nav container">
       <div class="day-nav-inner">
@@ -331,14 +331,14 @@ const pageTitle = `HN まとめ - ${pageTitleSuffix}`;
                    target="_blank" 
                    rel="noopener noreferrer"
                    class="api-link">
-                  View in HN Search
+                  HN Search で見る
                 </a>
               </>
             )}
           </div>
         </div>
         <a href={nextDayUrl} class={`nav-btn next-day ${(nextDayUrl === '#' || dateParseError) ? 'disabled' : ''}`}>
-          {isNextDayLatest ? 'View Latest' : 'Next Day'} <span class="nav-arrow">→</span>
+          {isNextDayLatest ? '最新' : '翌日'} <span class="nav-arrow">→</span>
         </a>
       </div>
     </nav>
