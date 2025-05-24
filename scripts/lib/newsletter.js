@@ -128,7 +128,7 @@ export async function generateSummaryWithGoogleAI(data) {
     const prompt = `
 Okay, act like you're calling your buddy on the phone to quickly tell them about the interesting Hacker News stuff from ${formattedDate}.
 
-Start with "Hey buddy,". Keep it super casual and use simple, everyday words. Don't be formal.
+Start with "Hey buddy,". Keep it super casual and use simple, everyday words. Don't be formal. 
 
 Below is the data, including the top 5 comments for each post. Just hit the main points for the best 5-7 stories, and mention any cool or surprising things from the comments if you see any.
 
@@ -138,7 +138,7 @@ ${JSON.stringify(postsData, null, 2)}
 Make sure it sounds like a real, quick chat. Point out anything useful or cool.
 
 Format the whole thing in HTML: Use <h2> for section headings, <p> for paragraphs, <strong> for emphasis, and <a> tags for links.
-NO MARKDOWN.
+NO MARKDOWN.   The final output should be in Japanese.
 `;
 
     // Using v1beta endpoint for preview model
