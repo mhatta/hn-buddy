@@ -259,16 +259,16 @@ if (dateParseError) {
 } else { // Fallback if campaign name is unusual but no specific error occurred
   pageTitleSuffix = displayDateForNav;
 }
-const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
+const pageTitle = `HN まとめ - ${pageTitleSuffix}`;
 ---
 
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={`HN Buddy - A daily digest of top Hacker News posts and comments for ${pageTitleSuffix}`} />
+    <meta name="description" content={`HN まとめ - Hacker News のトップ投稿やコメントを毎日ダイジェスト ${pageTitleSuffix}`} />
     <title>{pageTitle}</title>
     <style>
       /* Add styles for the new header link */
