@@ -141,8 +141,8 @@ Format the whole thing in HTML: Use <h2> for section headings, <p> for paragraph
 NO MARKDOWN.
 `;
 
-    // Using v1beta endpoint for preview model
-    const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${GOOGLE_AI_API_KEY}`;
+    // Using v1beta endpoint for latest stable model
+    const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
 
     const requestBody = {
       contents: [{
