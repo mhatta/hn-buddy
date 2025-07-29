@@ -3,7 +3,7 @@ import '../styles/global.css';
 import GitHubButton from '../components/GitHubButton.astro';
 import SignupForm from '../components/SignupForm.astro';
 
-const pageTitle = "HN Buddy - About";
+const pageTitle = "HN 日々のまとめについて";
 ---
 
 <html lang="en">
@@ -12,7 +12,7 @@ const pageTitle = "HN Buddy - About";
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content="About HN Buddy and why it was created." />
+    <meta name="description" content="HN 日々のまとめについて" />
     <title>{pageTitle}</title>
     <style>
       .story-container {
@@ -64,40 +64,27 @@ const pageTitle = "HN Buddy - About";
     <header>
       <div class="container header-container">
         <div class="header-content">
-          <a href="/" style="text-decoration: none; color: inherit;"><h1>HN Buddy</h1></a>
-          <p>Daily digest of top Hacker News posts and comments</p>
+          <a href="/" style="text-decoration: none; color: inherit;"><h1>HN 日々のまとめ</h1></a>
+          <p>Hacker News の人気投稿やコメントを毎日日本語でダイジェスト</p>
         </div>
         <div class="header-actions">
-          <GitHubButton repo="herget/hn-buddy" />
+          <GitHubButton repo="mhatta/hn-buddy" />
         </div>
       </div>
     </header>
 
     <div class="container back-link-container">
-        <a href="/" class="back-link">← Back to Latest Digest</a>
+        <a href="/" class="back-link">← 最新のダイジェストへ戻る</a>
     </div>
 
     <main class="container">
       <div class="story-container">
-        <h1>About HN Buddy</h1>
+        <h1>HN 日々のまとめについて</h1>
         <p>
-          Welcome to HN Buddy! This project was born out of a love for Hacker News and a desire to keep up with its insightful discussions without getting overwhelmed.
+          実験中
         </p>
         <p>
-          The core idea is simple: provide a daily, easy-to-digest summary of the top stories and their key comments. Whether you're short on time or just want a curated glance at what the tech world is talking about, HN Buddy aims to be your helpful companion.
-        </p>
-        <p>
-          It started as a personal tool to scratch an itch – I often found myself diving deep into comment threads, wondering if I was missing out on other interesting developments. By automating the process of gathering and summarizing, I could get a quick overview and decide where to focus my attention.
-        </p>
-        <p>
-          This project is open-source and self-hostable. You can find the code on <a href="https://github.com/herget/hn-buddy" target="_blank" rel="noopener noreferrer">GitHub</a>. 
-          It leverages the power of AI (currently Gemini 2.5) to generate summaries and is built with modern web technologies like Astro for the frontend and Listmonk for newsletter management.
-        </p>
-        <p>
-          My hope is that HN Buddy is as useful to you as it is to me. Feel free to explore, fork the code, or even contribute!
-        </p>
-        <p>
-           <em>- <a href="https://gherget.com" target="_blank">Gabor</a></em>
+           <em>- <a href="https://www.mhatta.org/" target="_blank">mhatta</a></em>
         </p>
       </div>
     </main>
