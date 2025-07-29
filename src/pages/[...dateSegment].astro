@@ -114,9 +114,9 @@ if (!dateParseError && currentContentDate) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'JST'
+    timeZone: 'UTC'
   };
-  displayDateForNav = currentContentDate.toLocaleDateString(undefined, dateOptions);
+  displayDateForNav = currentContentDate.toLocaleDateString('ja-JP', dateOptions);
 
   hnSearchApiDateStart = Math.floor(new Date(currentContentDate).setUTCHours(0,0,0,0)/1000);
   hnSearchApiDateEnd = Math.floor(new Date(currentContentDate).setUTCHours(23,59,59,999)/1000);
