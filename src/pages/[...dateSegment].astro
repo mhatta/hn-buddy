@@ -114,7 +114,7 @@ if (!dateParseError && currentContentDate) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'UTC'
+    timeZone: 'JST'
   };
   displayDateForNav = currentContentDate.toLocaleDateString(undefined, dateOptions);
 
@@ -268,7 +268,7 @@ const pageTitle = `HN 日々のまとめ - ${pageTitleSuffix}`;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={`HN 日々のまとめ - Hacker News の人気投稿やコメントを毎日ダイジェスト ${pageTitleSuffix}`} />
+    <meta name="description" content={`HN 日々のまとめ - Hacker News の人気投稿やコメントを毎日日本語でダイジェスト ${pageTitleSuffix}`} />
     <title>{pageTitle}</title>
     <style>
       /* Add styles for the new header link */
@@ -302,7 +302,7 @@ const pageTitle = `HN 日々のまとめ - ${pageTitleSuffix}`;
       <div class="container header-container">
         <div class="header-content">
         <h1>HN 日々のまとめ</h1>
-        <p>Hacker News の人気投稿やコメントを毎日ダイジェスト</p>
+        <p>Hacker News の人気投稿やコメントを毎日日本語でダイジェスト</p>
         </div>
         <div class="header-actions">
           <a href="/about" class="header-story-link">このサイトについて</a>
