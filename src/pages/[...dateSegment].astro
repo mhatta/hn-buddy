@@ -218,7 +218,7 @@ if (dateParseError) {
              if (Astro.response.status !== 400 && Astro.response.status !== 404) Astro.response.status = 500;
           }
         } else { // Campaign not found, even with 200 OK (defensive)
-          campaignContent = `<p>No newsletter found for "${expectedCampaignName}". It might not have been generated yet.</p>`;
+          campaignContent = `<p>ニュースレター "${expectedCampaignName}" が見つかりません。まだ生成されていない可能性があります。</p>`;
           Astro.response.headers.set('Cache-Control', 'public, max-age=1, s-maxage=3600');
         }
     }
