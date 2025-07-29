@@ -101,7 +101,7 @@ export async function generateSummaryWithGoogleAI(data) {
   }
 
   try {
-    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('en-US', {
+    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('ja-JP', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -128,7 +128,7 @@ export async function generateSummaryWithGoogleAI(data) {
     const prompt = `
 Okay, act like you're calling your buddy on the phone to quickly tell them about the interesting Hacker News stuff from ${formattedDate}.
 
-Start with "Hey buddy,". Keep it super casual and use simple, everyday words. Don't be formal.
+Start with "Hey buddy,". Keep it super casual and use simple, everyday words. Don't be formal. 
 
 Below is the data, including the top 5 comments for each post. Just hit the main points for the best 5-7 stories, and mention any cool or surprising things from the comments if you see any.
 
@@ -138,7 +138,7 @@ ${JSON.stringify(postsData, null, 2)}
 Make sure it sounds like a real, quick chat. Point out anything useful or cool.
 
 Format the whole thing in HTML: Use <h2> for section headings, <p> for paragraphs, <strong> for emphasis, and <a> tags for links.
-NO MARKDOWN.
+NO MARKDOWN.   The final output (including section headings) should be in Japanese.
 `;
 
     // Using v1beta endpoint for latest stable model
@@ -212,7 +212,7 @@ NO MARKDOWN.
 // Generate HTML for the newsletter
 export function generateNewsletterHTML(data, aiSummary) {
   const date = new Date(data.dayStartISOString);
-  const formattedDate = date.toLocaleDateString('en-US', { 
+  const formattedDate = date.toLocaleDateString('ja-JP', { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
@@ -222,7 +222,7 @@ export function generateNewsletterHTML(data, aiSummary) {
   // Start with the header, then the content fragment
   let html = `
       <div class="header" style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #f60;">HN Buddy Daily Digest</h1>
+        <h1 style="color: #f60;">HN 日々のまとめ</h1>
         <p>${formattedDate}</p>
       </div>
       
@@ -230,7 +230,7 @@ export function generateNewsletterHTML(data, aiSummary) {
         ${aiSummary}
       </div>
       
-      <h2 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">All Stories from Today</h2>
+      <h2 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">本日の全てのストーリー</h2>
   `;
 
   data.posts.forEach(({ post }) => {
@@ -245,9 +245,9 @@ export function generateNewsletterHTML(data, aiSummary) {
           <span style="font-size: 0.8em; color: #666;">(${hostname})</span>
         </h2>
         <div class="post-meta" style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
-          <span class="points" style="color: #f60; font-weight: 600;">${post.points} points</span> by 
+          <span class="points" style="color: #f60; font-weight: 600;">${post.points} ポイント</span> by 
           <a href="https://news.ycombinator.com/user?id=${post.author}">${post.author}</a> | 
-          <a href="${hnPostUrl}">${post.num_comments} comments</a>
+          <a href="${hnPostUrl}">${post.num_comments} コメント</a>
         </div>
       </div>
     `;
@@ -273,12 +273,12 @@ export async function generateAndSendNewsletter() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStart = getStartOfDayUTC(yesterday);
-    const formattedDateCheck = yesterdayStart.toLocaleDateString('en-US', {
+    const formattedDateCheck = yesterdayStart.toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-    const expectedCampaignName = `HN Buddy Daily Digest - ${formattedDateCheck}`;
+    const expectedCampaignName = `HN 日々のまとめ - ${formattedDateCheck}`;
     console.log(`Checking for existing campaign named: ${expectedCampaignName}`);
 
     // Check if this campaign already exists
@@ -352,7 +352,7 @@ export async function generateAndSendNewsletter() {
     // Generate HTML content
     const htmlContentFragment = generateNewsletterHTML(data, aiSummary);
     
-    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('en-US', {
+    const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
