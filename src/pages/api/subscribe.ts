@@ -141,7 +141,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return new Response(
       JSON.stringify({
-        message: "Successfully subscribed! I will send you the HN Buddy Daily Digest every day at 8:00 AM UTC.",
+        message: "登録に成功しました! HN 日々のまとめを毎日 8:00 AM UTC にメールでお送りします。",
         success: true,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
