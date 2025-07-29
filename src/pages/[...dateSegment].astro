@@ -174,10 +174,10 @@ if (dateParseError) {
   if (Astro.response.status !== 400 && Astro.response.status !== 404) Astro.response.status = 500;
 } else if (currentContentDate) { // Proceed only if date is valid and config is present
   try {
-    const formattedDateCheck = currentContentDate.toLocaleDateString('en-US', {
+    const formattedDateCheck = currentContentDate.toLocaleDateString('ja-JP', {
       year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
     });
-    const expectedCampaignName = `HN Buddy Daily Digest - ${formattedDateCheck}`;
+    const expectedCampaignName = `HN 日々のまとめ - ${formattedDateCheck}`;
     campaignNameForDisplay = expectedCampaignName;
 
     const encodedCredentials = btoa(LISTMONK_API_CREDENTIALS);
@@ -259,16 +259,16 @@ if (dateParseError) {
 } else { // Fallback if campaign name is unusual but no specific error occurred
   pageTitleSuffix = displayDateForNav;
 }
-const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
+const pageTitle = `HN 日々のまとめ - ${pageTitleSuffix}`;
 ---
 
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={`HN Buddy - A daily digest of top Hacker News posts and comments for ${pageTitleSuffix}`} />
+    <meta name="description" content={`HN 日々のまとめ - Hacker News の人気投稿やコメントを毎日ダイジェスト ${pageTitleSuffix}`} />
     <title>{pageTitle}</title>
     <style>
       /* Add styles for the new header link */
@@ -301,12 +301,12 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
     <header>
       <div class="container header-container">
         <div class="header-content">
-        <h1>HN Buddy</h1>
-        <p>Daily digest of top Hacker News posts and comments</p>
+        <h1>HN 日々のまとめ</h1>
+        <p>Hacker News の人気投稿やコメントを毎日ダイジェスト</p>
         </div>
         <div class="header-actions">
-          <a href="/about" class="header-story-link">About</a>
-          <GitHubButton repo="herget/hn-buddy" />
+          <a href="/about" class="header-story-link">このサイトについて</a>
+          <GitHubButton repo="mhatta/hn-buddy" />
         </div>
       </div>
     </header>
@@ -318,12 +318,12 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
     <nav class="day-nav container">
       <div class="day-nav-inner">
         <a href={prevDayUrl} class={`nav-btn prev-day ${prevDayUrl === '#' || dateParseError ? 'disabled' : ''}`}>
-          <span class="nav-arrow">←</span> Previous Day
+          <span class="nav-arrow">←</span> 前日
         </a>
         <div class="current-day">
           <h2>{displayDateForNav}</h2>
           <div class="day-meta">
-            <a href={latestDigestUrl} class="today-link">Latest Digest</a>
+            <a href={latestDigestUrl} class="today-link">最新のまとめ</a>
             {currentContentDate && !dateParseError && (
               <>
                 |
@@ -331,14 +331,14 @@ const pageTitle = `HN Buddy - ${pageTitleSuffix}`;
                    target="_blank" 
                    rel="noopener noreferrer"
                    class="api-link">
-                  View in HN Search
+                  HN Search で見る
                 </a>
               </>
             )}
           </div>
         </div>
         <a href={nextDayUrl} class={`nav-btn next-day ${(nextDayUrl === '#' || dateParseError) ? 'disabled' : ''}`}>
-          {isNextDayLatest ? 'View Latest' : 'Next Day'} <span class="nav-arrow">→</span>
+          {isNextDayLatest ? '最新' : '翌日'} <span class="nav-arrow">→</span>
         </a>
       </div>
     </nav>
