@@ -97,7 +97,7 @@ app.get('/ping', (req, res) => {
 // See https://www.npmjs.com/package/node-cron for details
 // In test mode, run every minute for easier testing
 const CRON_SCHEDULE = isTestMode ? '* * * * *' : '0 8 * * *';
-console.log(`CRON SCHEDULE: ${CRON_SCHEDULE} (${isTestMode ? 'every minute - TEST MODE' : 'daily at 8:00 UTC'})`);
+console.log(`CRON SCHEDULE: ${CRON_SCHEDULE} (${isTestMode ? 'every minute - TEST MODE' : 'daily at 8:00 JST'})`);
 
 cron.schedule(CRON_SCHEDULE, async () => {
   console.log(`Newsletter generation triggered by schedule at ${new Date().toISOString()}`);
@@ -124,6 +124,6 @@ app.listen(port, () => {
   
   if (isTestMode) {
     console.log('⚠️ TEST MODE ACTIVE - Newsletter will be generated every minute');
-    console.log('Run npm start for normal mode (daily at 8:00 UTC)');
+    console.log('Run npm start for normal mode (daily at 8:00 JST)');
   }
 }); 
