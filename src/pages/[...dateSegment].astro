@@ -54,40 +54,68 @@ interface ListmonkCampaignsResponse {
   data?: ListmonkCampaignsData;
 }
 
+// Helper function to get JST date (midnight)
+function getJSTDate(date: Date): Date {
+  const jstOffset = 9 * 60 * 60 * 1000; // JST is UTC+9
+  const utcTime = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);
+  const jstTime = utcTime + jstOffset;
+  const jstDate = new Date(jstTime);
+  jstDate.setHours(0, 0, 0, 0); // Set to midnight JST
+  return jstDate;
+}
+
+// Helper function to create JST date from year, month, day
+function createJSTDate(year: number, month: number, day: number): Date {
+  // Create date in JST timezone
+  const jstOffset = 9 * 60 * 60 * 1000; // JST is UTC+9
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  const jstTime = utcDate.getTime() + jstOffset;
+  const jstDate = new Date(jstTime);
+  jstDate.setHours(0, 0, 0, 0);
+  return jstDate;
+}
+
+// Helper function to get current JST time
+function getCurrentJST(): Date {
+  const now = new Date();
+  const jstOffset = 9 * 60 * 60 * 1000; // JST is UTC+9
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+  const jstTime = utcTime + jstOffset;
+  return new Date(jstTime);
+}
+
 let currentContentDate: Date | null = null;
 let dateParseError = false;
 let isRootPath = false;
 
-const todayForReference = new Date(); // Use local 'today' for reference calculations if needed, but content date is UTC
+const todayForReference = getCurrentJST(); // Use JST 'today' for reference calculations
 
 if (dateSegment === undefined || dateSegment === '' || dateSegment === null) { // Root path
   isRootPath = true;
-  const nowUtc = new Date();
-  // Initialize currentContentDate to today UTC midnight
-  currentContentDate = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate()));
+  const nowJst = getCurrentJST();
+  // Initialize currentContentDate to today JST midnight
+  currentContentDate = getJSTDate(nowJst);
   
-  if (nowUtc.getUTCHours() < 8) {
-    // If before 8:00 AM UTC, set to two days ago UTC
-    currentContentDate.setUTCDate(currentContentDate.getUTCDate() - 2);
+  if (nowJst.getHours() < 8) {
+    // If before 8:00 AM JST, set to two days ago JST
+    currentContentDate.setDate(currentContentDate.getDate() - 2);
   } else {
-    // Otherwise, set to yesterday UTC
-    currentContentDate.setUTCDate(currentContentDate.getUTCDate() - 1);
+    // Otherwise, set to yesterday JST
+    currentContentDate.setDate(currentContentDate.getDate() - 1);
   }
-  // currentContentDate is already at UTC midnight
 } else if (typeof dateSegment === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateSegment)) {
   const parts = dateSegment.split('-').map(Number);
-  const parsedDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  const parsedDate = createJSTDate(parts[0], parts[1], parts[2]);
   if (isNaN(parsedDate.getTime())) {
     dateParseError = true;
     Astro.response.status = 400;
   } else {
-    currentContentDate = parsedDate; // Already UTC midnight
-    // Check if requested date is in the future relative to "yesterday"
-    const utcToday = new Date();
-    utcToday.setUTCHours(0,0,0,0);
-    const utcYesterday = new Date(utcToday);
-    utcYesterday.setUTCDate(utcToday.getUTCDate() - 1);
-    if (currentContentDate.getTime() > utcYesterday.getTime()) {
+    currentContentDate = parsedDate; // Already JST midnight
+    // Check if requested date is in the future relative to "yesterday" in JST
+    const jstToday = getJSTDate(getCurrentJST());
+    const jstYesterday = new Date(jstToday);
+    jstYesterday.setDate(jstToday.getDate() - 1);
+    if (currentContentDate.getTime() > jstYesterday.getTime()) {
       // Requesting a date like "today" or "future" for a digest page
       // This might mean "no content yet" or could be an invalid request depending on desired behavior
       // For now, we'll let the API fetch handle it (likely no campaign found)
@@ -114,38 +142,42 @@ if (!dateParseError && currentContentDate) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'UTC'
+    timeZone: 'Asia/Tokyo'
   };
   displayDateForNav = currentContentDate.toLocaleDateString('ja-JP', dateOptions);
 
-  hnSearchApiDateStart = Math.floor(new Date(currentContentDate).setUTCHours(0,0,0,0)/1000);
-  hnSearchApiDateEnd = Math.floor(new Date(currentContentDate).setUTCHours(23,59,59,999)/1000);
+  // Convert JST date to UTC timestamps for HN Search API
+  const jstStartOfDay = new Date(currentContentDate);
+  const jstEndOfDay = new Date(currentContentDate);
+  jstEndOfDay.setHours(23, 59, 59, 999);
+  
+  // Convert JST to UTC for API
+  const jstOffset = 9 * 60 * 60 * 1000;
+  const utcStartOfDay = new Date(jstStartOfDay.getTime() - jstOffset);
+  const utcEndOfDay = new Date(jstEndOfDay.getTime() - jstOffset);
+  
+  hnSearchApiDateStart = Math.floor(utcStartOfDay.getTime() / 1000);
+  hnSearchApiDateEnd = Math.floor(utcEndOfDay.getTime() / 1000);
 
   const prevContentDate = new Date(currentContentDate);
-  prevContentDate.setUTCDate(currentContentDate.getUTCDate() - 1);
-  prevDayUrl = `/${prevContentDate.getUTCFullYear()}-${String(prevContentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(prevContentDate.getUTCDate()).padStart(2, '0')}`;
+  prevContentDate.setDate(currentContentDate.getDate() - 1);
+  prevDayUrl = `/${prevContentDate.getFullYear()}-${String(prevContentDate.getMonth() + 1).padStart(2, '0')}-${String(prevContentDate.getDate()).padStart(2, '0')}`;
 
   const nextContentDate = new Date(currentContentDate);
-  nextContentDate.setUTCDate(currentContentDate.getUTCDate() + 1); // This is UTC midnight of next day
+  nextContentDate.setDate(currentContentDate.getDate() + 1); // This is JST midnight of next day
 
-  // Determine "yesterday" in UTC for comparison
-  const utcComparisonToday = new Date();
-  utcComparisonToday.setUTCHours(0,0,0,0);
-  const utcComparisonYesterday = new Date(utcComparisonToday);
-  utcComparisonYesterday.setUTCDate(utcComparisonToday.getUTCDate() - 1);
+  // Determine "yesterday" in JST for comparison
+  const jstComparisonToday = getJSTDate(getCurrentJST());
+  const jstComparisonYesterday = new Date(jstComparisonToday);
+  jstComparisonYesterday.setDate(jstComparisonToday.getDate() - 1);
 
-
-  // If the *next day* from currentContentDate is later than or equal to *actual yesterday* (UTC),
+  // If the *next day* from currentContentDate is later than or equal to *actual yesterday* (JST),
   // then the "next" button should point to the latest digest (root).
-  // OR, if currentContentDate *is* yesterday, nextContentDate is today.
-  // If nextContentDate (which is currentContentDate + 1 day) is >= utcComparisonYesterday,
-  // it means currentContentDate is either the day before yesterday, or yesterday itself.
-  // If nextContentDate is >= utcComparisonToday, means current day is yesterday or later
-  if (nextContentDate.getTime() >= utcComparisonYesterday.getTime()) {
+  if (nextContentDate.getTime() >= jstComparisonYesterday.getTime()) {
     nextDayUrl = '/';
     isNextDayLatest = true;
   } else {
-    nextDayUrl = `/${nextContentDate.getUTCFullYear()}-${String(nextContentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(nextContentDate.getUTCDate()).padStart(2, '0')}`;
+    nextDayUrl = `/${nextContentDate.getFullYear()}-${String(nextContentDate.getMonth() + 1).padStart(2, '0')}-${String(nextContentDate.getDate()).padStart(2, '0')}`;
   }
 } else if (dateParseError) {
   // Values already initialized for error state
@@ -155,9 +187,6 @@ if (!dateParseError && currentContentDate) {
 export const prerender = false; // SSR for all paths handled by this route
 
 // --- Listmonk API Fetching ---
-// const LISTMONK_API_URL = process.env.ASTRO_LISTMONK_API_URL; // Old way
-// const LISTMONK_API_CREDENTIALS = process.env.ASTRO_LISTMONK_API_KEY; // Old way
-
 let campaignContent = '<p>Loading newsletter...</p>';
 let campaignNameForDisplay = 'N/A';
 let errorOccurred = dateParseError;
@@ -175,7 +204,7 @@ if (dateParseError) {
 } else if (currentContentDate) { // Proceed only if date is valid and config is present
   try {
     const formattedDateCheck = currentContentDate.toLocaleDateString('ja-JP', {
-      year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+      year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Tokyo'
     });
     const expectedCampaignName = `HN 日々のまとめ - ${formattedDateCheck}`;
     campaignNameForDisplay = expectedCampaignName;
@@ -525,4 +554,4 @@ const pageTitle = `HN 日々のまとめ - ${pageTitleSuffix}`;
       justify-content: center;
     }
   }
-</style> 
+</style>
