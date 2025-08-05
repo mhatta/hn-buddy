@@ -22,23 +22,38 @@ export function initEnvironment(env) {
   };
 }
 
-// Helper functions
-export function getStartOfDayUTC(date) {
-  const d = new Date(date);
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
+// Helper functions for JST timezone handling
+export function getStartOfDayJST(date) {
+  // Convert to JST (UTC+9)
+  const jstOffset = 9 * 60 * 60 * 1000; // 9 hours in milliseconds
+  const jstDate = new Date(date.getTime() + jstOffset);
+  
+  // Set to start of day in JST
+  jstDate.setUTCHours(0, 0, 0, 0);
+  
+  // Convert back to UTC for API calls
+  return new Date(jstDate.getTime() - jstOffset);
+}
+
+export function getCurrentJSTDate() {
+  const now = new Date();
+  const jstOffset = 9 * 60 * 60 * 1000; // 9 hours in milliseconds
+  return new Date(now.getTime() + jstOffset);
 }
 
 // Core functionality
 export async function fetchHNData(dayOffset = 0) {
-  const now = new Date();
-  const dayRef = new Date(now);
-  dayRef.setDate(dayRef.getDate() - dayOffset);
+  const jstNow = getCurrentJSTDate();
+  const jstDayRef = new Date(jstNow);
+  jstDayRef.setDate(jstDayRef.getDate() - dayOffset);
   
-  const dayStart = getStartOfDayUTC(dayRef);
+  const dayStart = getStartOfDayJST(jstDayRef);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
   const numericDayStart = Math.floor(dayStart.getTime() / 1000);
   const numericDayEnd = Math.floor(dayEnd.getTime() / 1000);
+  
+  console.log(`Fetching HN data for JST date: ${jstDayRef.toISOString().split('T')[0]}`);
+  console.log(`UTC range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
   
   try {
     const algoliaURL = `https://hn.algolia.com/api/v1/search?tags=story&numericFilters=created_at_i>=${numericDayStart},created_at_i<${numericDayEnd}&hitsPerPage=30`;
@@ -85,7 +100,7 @@ export async function fetchHNData(dayOffset = 0) {
     }
     
     return {
-      dayStartISOString: dayStart.toISOString(),
+      dayStartISOString: jstDayRef.toISOString(), // Return JST date for display
       posts: postsWithComments
     };
   } catch (error) {
@@ -105,7 +120,8 @@ export async function generateSummaryWithGoogleAI(data) {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'Asia/Tokyo'
     });
 
     // Prepare data for Google AI, including top 5 comments
@@ -216,7 +232,8 @@ export function generateNewsletterHTML(data, aiSummary) {
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
-    day: 'numeric' 
+    day: 'numeric',
+    timeZone: 'Asia/Tokyo'
   });
 
   // Start with the header, then the content fragment
@@ -270,16 +287,20 @@ export async function generateAndSendNewsletter() {
     const encoded = btoa(credentials);
 
     // Idempotency Check (don't send the same newsletter twice)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStart = getStartOfDayUTC(yesterday);
-    const formattedDateCheck = yesterdayStart.toLocaleDateString('ja-JP', {
+    // Use JST for date calculations
+    const jstNow = getCurrentJSTDate();
+    const jstYesterday = new Date(jstNow);
+    jstYesterday.setDate(jstYesterday.getDate() - 1);
+    
+    const formattedDateCheck = jstYesterday.toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'Asia/Tokyo'
     });
     const expectedCampaignName = `HN 日々のまとめ - ${formattedDateCheck}`;
     console.log(`Checking for existing campaign named: ${expectedCampaignName}`);
+    console.log(`JST reference date: ${jstYesterday.toISOString().split('T')[0]}`);
 
     // Check if this campaign already exists
     const checkUrl = `${LISTMONK_API_URL}/api/campaigns?query=${encodeURIComponent(expectedCampaignName)}&page=1&per_page=1`;
@@ -339,8 +360,8 @@ export async function generateAndSendNewsletter() {
       };
     }
 
-    // Fetch HN data for yesterday
-    console.log('Fetching HN data for', yesterdayStart.toISOString());
+    // Fetch HN data for yesterday (JST)
+    console.log('Fetching HN data for yesterday (JST)...');
     const data = await fetchHNData(1);
     console.log('HN data fetched successfully.');
     
@@ -355,7 +376,8 @@ export async function generateAndSendNewsletter() {
     const formattedDate = new Date(data.dayStartISOString).toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'Asia/Tokyo'
     });
     
     // Prepare the campaign payload
@@ -436,4 +458,4 @@ function btoa(str) {
       throw new Error('Base64 encoding failed');
     }
   }
-} 
+}
