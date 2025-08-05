@@ -55,11 +55,13 @@ async function postToBluesky() {
     const authData = await authResponse.json();
     const accessJwt = authData.accessJwt;
 
-    // Generate the newsletter URL based on current date (JST)
+    // Generate the newsletter URL based on previous day's date (JST)
     const now = new Date();
     // Convert to JST (UTC+9)
     const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-    const dateStr = jstDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    // Subtract one day (24 hours = 24 * 60 * 60 * 1000 milliseconds)
+    const previousDay = new Date(jstDate.getTime() - (24 * 60 * 60 * 1000));
+    const dateStr = previousDay.toISOString().split('T')[0]; // YYYY-MM-DD format
     const newsletterUrl = `https://hn-matome.pages.dev/${dateStr}`;
 
     // Create the post content
