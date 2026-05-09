@@ -158,8 +158,8 @@ NO MARKDOWN.   The final output (including section headings) should be in Japane
 `;
 
     // Using v1beta endpoint for latest stable model
-    const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_AI_API_KEY}`;
-
+    const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GOOGLE_AI_API_KEY}`;
+      
     const requestBody = {
       contents: [{
         parts: [{ text: prompt }]
